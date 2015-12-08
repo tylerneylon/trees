@@ -149,6 +149,15 @@ static char *vec_str(vec3 v) {
   return s;
 }
 
+// First goal: Effectively pull skeleton generation out into Lua.
+// In general, I like the idea of writing the Lua I want and then adding the C
+// code to make that actually work.
+//
+// This functions builds a tree in the following globals:
+// * tree_pts       Each item is a triple of GLfloats; a 3d point.
+// * tree_pt_info   Each item is a Pt_info.
+// * leaves         These are indexes in tree_pts that are leaves.
+// * branch_pts     -- This value appears to be unused in practice!
 static void add_to_tree(vec3 origin,
                         vec3 direction,
                         float weight,
