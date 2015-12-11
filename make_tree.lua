@@ -67,6 +67,20 @@ local function add_to_tree(args, tree)
   local avg_len = avg_len * branch_size_factor
   local origin  = origin + len * direction
 
+  -- TODO Basically, I think the angle-choosing code below is not very good.
+  --      I think it gives poorly distributed angles. Improve.
+
+  -- PLAN Try two approaches:
+  --  1.  For each branch point, track a unit direction vector orthogonal to the
+  --      plane of the branching. At the child branch points, choose a random
+  --      new orthogonal direction that averages around 90 degrees off of the
+  --      parent's orthogonal direction.
+  --  2.  Pick the orth dir to be truly random, but discard things close enough
+  --      to the current branch dir.
+  --
+  --  Here's a good way to choose a random unit vector in R³:
+  --  http://math.stackexchange.com/a/44691/10785
+
   local split_angle = val_near_avg(0.55)  -- This is in radians.
   local turn_angle  = uniform_rand(0.0, 2 * math.pi)
 
