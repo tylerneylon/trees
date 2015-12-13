@@ -76,7 +76,7 @@ end
 -- The return value of this is a unitary matrix M such that M * dir = (0, 0, 1).
 function Mat3:rotate_to_z(dir)
   assert(getmetatable(dir) == Vec3)
-  local v3 = dir:normalize()
+  local v3 = Vec3:new(dir):normalize()
 
   -- Find vectors v1 and v2 so that {v1, v2, v3} are orthonormal and satisfy the
   -- right-hand rule. In other words, the matrix {v1, v2, v3} has determinant 1.

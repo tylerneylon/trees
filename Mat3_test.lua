@@ -8,6 +8,18 @@ local Mat3 = require 'Mat3'
 local Vec3 = require 'Vec3'
 
 
+-- Utility functions to help with testing.
+
+local function close(x1, x2)
+  local epsilon = 1e-4
+  return math.abs(x1 - x2) < epsilon
+end
+
+local function vectors_are_close(v1, v2)
+  return close(v1[1], v2[1]) and close(v1[2], v2[2]) and close(v1[3], v2[3])
+end
+
+
 -- Test element lookup based on constructors.
 
 local M
@@ -73,8 +85,42 @@ assert(P[1][1] == 1)
 assert(P[2][1] == 2)
 assert(P[1][2] == 4)
 
+
+-- Test rotate_to_z.
+
+local z
+
+-- Check that the input is not normalized by rotate_to_z.
+v = Vec3:new(1, 1, 1)
+z = Vec3:new(v)
+M = Mat3:rotate_to_z(v)
+assert(v[1] == z[1] and v[2] == z[2] and v[3] == z[3])
+
+v:normalize()
+w = M * v
+z = Vec3:new(0, 0, 1)
+assert(vectors_are_close(w, z))
+
+v = Vec3:new(1, 0, 0)
+w = M * v
+assert(close(w:length(), 1))
+
+
+-- Test rotate.
+
+local y
+
 -- TODO NEXT
--- Test rotate_to_z and rotate.
+--  [ ] Debug the assert below.
+--  [ ] Add a bit more to the testingz of rotate.
+
+-- Rotation around z should be counterclockwise rotation in the x, y plane.
+M = Mat3:rotate(z, math.pi / 2)
+v = Vec3:new(1, 0, 0)
+w = M * v
+print('w=' .. w:as_str())  -- TEMP
+y = Vec3:new(0, 1, 0)
+assert(vectors_are_close(w, y))
 
 
 print('All tests passed!')
