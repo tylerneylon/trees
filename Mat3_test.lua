@@ -111,14 +111,14 @@ assert(close(w:length(), 1))
 local y
 
 -- TODO NEXT
---  [ ] Debug the assert below.
+--  [x] Debug the assert below.
 --  [ ] Add a bit more to the testingz of rotate.
+--  [ ] Add a test for det
 
 -- Rotation around z should be counterclockwise rotation in the x, y plane.
 M = Mat3:rotate(z, math.pi / 2)
 v = Vec3:new(1, 0, 0)
 w = M * v
-print('w=' .. w:as_str())  -- TEMP
 y = Vec3:new(0, 1, 0)
 assert(vectors_are_close(w, y))
 

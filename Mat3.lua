@@ -12,6 +12,13 @@ local Mat3 = {}
 local Vec3 = require 'Vec3'
 
 
+-- Internal functions.
+
+local function pr(...)
+  print(string.format(...))
+end
+
+
 -- Public functions.
 
 function Mat3:new_with_cols(c1, c2, c3)
@@ -34,6 +41,22 @@ function Mat3:new_with_rows(r1, r2, r3)
   end end
   self.__index = self
   return setmetatable(m, self)
+end
+
+function Mat3:det()
+  return 0
+         + self[1][1] * self[2][2] * self[3][3]
+         + self[1][2] * self[2][3] * self[3][1]
+         + self[1][3] * self[2][1] * self[3][2]
+         - self[1][1] * self[2][3] * self[3][2]
+         - self[1][2] * self[2][1] * self[3][3]
+         - self[1][3] * self[2][2] * self[3][1]
+end
+
+function Mat3:print()
+  for i = 1, 3 do
+    pr('[ %7.3g %7.3g %7.3g ]', self[i][1], self[i][2], self[i][3])
+  end
 end
 
 function Mat3:__mul(m)
@@ -108,9 +131,9 @@ function Mat3:rotate(dir, angle)
 
   -- 2. Rotate about z.
   local c, s = math.cos(angle), math.sin(angle)
-  local R = Mat3:new_with_rows({ c, s, 0},
-                               {-s, c, 0},
-                               { 0, 0, 1})
+  local R = Mat3:new_with_rows({ c, -s, 0},
+                               { s,  c, 0},
+                               { 0,  0, 1})
 
   -- 3. Move z back to dir.
   local z_to_dir = dir_to_z:get_transpose()
