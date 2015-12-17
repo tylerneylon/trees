@@ -93,9 +93,6 @@ function Mat3:__mul(m)
   return setmetatable(out, m_mt)
 end
 
--- TODO Assert that the determinant of the next two matrices is 1 up to an
--- appropriate precision.
-
 -- The return value of this is a unitary matrix M such that M * dir = (0, 0, 1).
 function Mat3:rotate_to_z(dir)
   assert(getmetatable(dir) == Vec3)
@@ -141,7 +138,5 @@ function Mat3:rotate(dir, angle)
   -- Return their composition; these operations are applied right-to-left.
   return z_to_dir * R * dir_to_z
 end
-
--- TODO Add a determinant function, and use it to help test.
 
 return Mat3
