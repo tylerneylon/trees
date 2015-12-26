@@ -11,6 +11,7 @@ local make_tree = {}
 
 -- Requires.
 
+local Mat3 = require 'Mat3'
 local Vec3 = require 'Vec3'
 
 
@@ -36,8 +37,9 @@ end
 -- Mabye the format of a tree can be:
 -- tree[i] = {pt       = {x, y, z},
 --            kind     = 'parent', 'child', or 'leaf',
---            [parent] = index of parent}
+--            parent   = index of parent}
 
+-- parent = index of parent
 local function add_line(tree, from, to, parent)
 
   -- Add the from item.
@@ -53,16 +55,21 @@ local function add_line(tree, from, to, parent)
   tree[#tree + 1] = new_item
 end
 
-local function add_to_tree(args, tree)
+local function add_to_tree(args, tree, max_recursion)
   tree = tree or {}
+  max_recursion = max_recursion or args.max_recursion
+
   args.direction:normalize()
   local len = val_near_avg(args.avg_len)
   add_line(args.origin, args.origin + len * args.direction, args.parent)
 
-  if len < args.min_len or args.max_recursion == 0 then
+  if len < args.min_len or max_recursion == 0 then
     -- TODO Do we need a leaves list? Leaving out for now.
     return
   end
+
+  local w1 = val_near_avg(0.5)
+  local w2 = 1 - w1
 
   local avg_len = avg_len * branch_size_factor
   local origin  = origin + len * direction
@@ -84,19 +91,34 @@ local function add_to_tree(args, tree)
   local split_angle = val_near_avg(0.55)  -- This is in radians.
   local turn_angle  = uniform_rand(0.0, 2 * math.pi)
 
-  -- TODO Improve thie part of the process. arbit_dir is too deterministic!
+  -- TODO Improve this part of the process. arbit_dir is too deterministic!
   -- Find other_dir orthogonal to direction.
   local dir = args.direction
   local arbit_dir
   -- Improve stability by ensuring arbit_dir is not near-dependent on direction.
   if dir[1] > dir[2] and dir[1] > dir[3] then
-    arbit_dir = Vec3:new(0, 1, 0}
+    arbit_dir = Vec3:new(0, 1, 0)
   else
     arbit_dir = Vec3:new(1, 0, 0)
   end
   local other_dir = dir:cross(arbit_dir)
 
-  -- TODO HERE 2/2
+  local turn = Mat3:rotate(turn_angle, args.direction)
+
+  local dir1 = turn * Mat3:rotate( split_angle * w1, other_dir) * args.direction
+  local dir2 = turn * Mat3:rotate(-split_angle * w2, other_dir) * args.direction
+
+  local parent = #tree
+
+  args.direction = dir1
+  args.parent = parent
+  add_to_tree(args, tree, max_recursion - 1)
+
+  args.direction = dir2
+  args.parent = parent
+  add_to_tree(args, tree, max_recursion - 1)
+
+  return tree
 end
 
 -- Public functions.
