@@ -95,6 +95,7 @@ end
 
 -- The return value of this is a unitary matrix M such that M * dir = (0, 0, 1).
 function Mat3:rotate_to_z(dir)
+  -- TODO Improve the error message on this assert (and any similar ones).
   assert(getmetatable(dir) == Vec3)
   local v3 = Vec3:new(dir):normalize()
 
@@ -117,10 +118,10 @@ function Mat3:get_transpose()
   return Mat3:new_with_cols(self[1], self[2], self[3])
 end
 
--- Mat3:rotate(dir, angle) gives a matrix that rotates inputs by `angle` radians
+-- Mat3:rotate(angle, dir) gives a matrix that rotates inputs by `angle` radians
 -- around vector dir. This rotates things counterclockwise when the viewer is
 -- looking straight down dir; that is, in the opposite direction of dir.
-function Mat3:rotate(dir, angle)
+function Mat3:rotate(angle, dir)
   -- Plan: move dir to z; rotate around z, move z back to dir by inverse.
 
   -- 1. Move dir to z.

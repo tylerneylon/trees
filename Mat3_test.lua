@@ -112,14 +112,14 @@ assert(close(w:length(), 1))
 local y
 
 -- Rotation around z should be counterclockwise rotation in the x, y plane.
-M = Mat3:rotate(z, math.pi / 2)
+M = Mat3:rotate(math.pi / 2, z)
 assert(close(M:det(), 1))
 v = Vec3:new(1, 0, 0)
 w = M * v
 y = Vec3:new(0, 1, 0)
 assert(vectors_are_close(w, y))
 
-M = Mat3:rotate(y, math.pi / 4)
+M = Mat3:rotate(math.pi / 4, y)
 assert(close(M:det(), 1))
 w = M * v  -- v == (1, 0, 0)
 local sqrt_half = math.sqrt(0.5)
@@ -127,7 +127,7 @@ local u = Vec3:new(sqrt_half, 0, -sqrt_half)
 assert(vectors_are_close(w, u))
 
 u = Vec3:new(1, 1, 1)
-M = Mat3:rotate(u, 1)
+M = Mat3:rotate(1, u)
 assert(close(M:det(), 1))
 w = M * v  -- v == (1, 0, 0)
 assert(close(u:dot(v), u:dot(w)))

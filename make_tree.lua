@@ -41,13 +41,18 @@ end
 
 -- parent = index of parent
 local function add_line(tree, from, to, parent)
+  assert(tree)
+  assert(from)
+  assert(to)
+  assert(parent)
+  assert(tree and from and to and parent)
 
   -- Add the from item.
   local new_item = { pt = from, kind = 'child', parent = parent }
   tree[#tree + 1] = new_item
 
   -- Ensure the parent is marked as a parent and not a leaf.
-  tree[parent].kind = 'parent'
+  if parent > 0 then tree[parent].kind = 'parent' end
 
   -- Add the to item.
   -- It starts as a leaf, and becomes a parent when a child is added to it.
@@ -61,7 +66,8 @@ local function add_to_tree(args, tree, max_recursion)
 
   args.direction:normalize()
   local len = val_near_avg(args.avg_len)
-  add_line(args.origin, args.origin + len * args.direction, args.parent)
+  assert(args.parent) -- TEMP
+  add_line(tree, args.origin, args.origin + len * args.direction, args.parent)
 
   if len < args.min_len or max_recursion == 0 then
     -- TODO Do we need a leaves list? Leaving out for now.
@@ -71,8 +77,8 @@ local function add_to_tree(args, tree, max_recursion)
   local w1 = val_near_avg(0.5)
   local w2 = 1 - w1
 
-  local avg_len = avg_len * branch_size_factor
-  local origin  = origin + len * direction
+  local avg_len = args.avg_len * branch_size_factor
+  local origin  = args.origin + len * args.direction
 
   -- TODO Basically, I think the angle-choosing code below is not very good.
   --      I think it gives poorly distributed angles. Improve.
@@ -102,6 +108,11 @@ local function add_to_tree(args, tree, max_recursion)
     arbit_dir = Vec3:new(1, 0, 0)
   end
   local other_dir = dir:cross(arbit_dir)
+
+  -- TEMP
+  print('turn_angle=' .. turn_angle)
+  print('args.direction=' .. args.direction:as_str())
+  assert(getmetatable(args.direction) == Vec3)
 
   local turn = Mat3:rotate(turn_angle, args.direction)
 
@@ -138,11 +149,14 @@ function make_tree.make()
   -- TEMP NOTE: The tree table can hold all the data previously held in
   --            tree_pts, tree_pt_info, and leaves. Non-top-level calls to
   --            add_to_tree can receive it as a second param.
-  tree = add_to_tree(tree_add_params)
+  return add_to_tree(tree_add_params)
 
   -- Eventually:
   -- add_rings()
 end
+
+-- TEMP TEST
+tree = make_tree.make()
 
 
 return make_tree
