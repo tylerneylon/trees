@@ -54,16 +54,16 @@ static mat4 view;
 
 static int num_pts;
 
-static CArray tree_pts     = NULL;
-static CArray tree_pt_info = NULL;
+static Array tree_pts     = NULL;
+static Array tree_pt_info = NULL;
 
 // These are triples of ints, indices into tree_pts.
 // Each triple is (trunk_end, branch1, branch2).
-static CArray branch_pts = NULL;
+static Array branch_pts = NULL;
 
-static CArray leaves = NULL;
+static Array leaves = NULL;
 
-static CArray ring_pts = NULL;
+static Array ring_pts = NULL;
 
 static bool do_draw_skeleton    = false;
 static bool do_draw_rings       = false;
@@ -78,13 +78,13 @@ static GLsizei num_stick_line_elts;
 static GLuint stick_lines_vbo;
 
 static GLuint stick_bark_vbo;
-static CArray stick_bark_pts     = NULL;
-static CArray stick_bark_normals = NULL;
+static Array stick_bark_pts     = NULL;
+static Array stick_bark_normals = NULL;
 static GLuint stick_bark_normal_vbo;
 
 static GLuint joint_bark_vbo;
-static CArray joint_bark_pts     = NULL;
-static CArray joint_bark_normals = NULL;
+static Array joint_bark_pts     = NULL;
+static Array joint_bark_normals = NULL;
 static GLuint joint_bark_normal_vbo;
 
 static GLuint restart_index;
@@ -92,10 +92,10 @@ static GLuint restart_index;
 
 // Internal functions.
 
-static void set_buffer_data(CArray arr) {
+static void set_buffer_data(Array arr) {
   glBufferData(GL_ARRAY_BUFFER,
-               arr->count * arr->elementSize,
-               arr->elements,
+               arr->count * arr->item_size,
+               arr->items,
                GL_STATIC_DRAW);
 }
 
@@ -132,14 +132,15 @@ static float val_near_avg(float avg_len) {
 
 static void add_line(vec3 start, vec3 end, int parent_index) {
   
-  // Both CArrayAddElement lines add all three coordinates to the array.
+  // Both array__add_element lines add all three coordinates to the array.
   // I wish this was more obvious from the code itself.
   
-  CArrayAddElement(tree_pts, start[0]);
-  *(Pt_info *)CArrayNewElement(tree_pt_info) = (Pt_info) { .pt_type = pt_type_child, .parent = parent_index };
+  array__add_item_val(tree_pts, start[0]);
+  array__new_val(tree_pt_info, Pt_info) =
+      (Pt_info) { .pt_type = pt_type_child, .parent = parent_index };
   
-  CArrayAddElement(tree_pts,   end[0]);
-  *(Pt_info *)CArrayNewElement(tree_pt_info) = (Pt_info) { .pt_type = pt_type_leaf };
+  array__add_item_val(tree_pts,   end[0]);
+  array__new_val(tree_pt_info, Pt_info) = (Pt_info) { .pt_type = pt_type_leaf };
   
 }
 
@@ -173,7 +174,7 @@ static void add_to_tree(vec3 origin,
   add_line(origin, origin + len * direction, parent_index);
   
   if (len < min_len || max_recursion == 0) {
-    *(int *)CArrayNewElement(leaves) = tree_pts->count - 1;
+    array__new_val(leaves, int) = tree_pts->count - 1;
     return;
   }
   
@@ -201,34 +202,34 @@ static void add_to_tree(vec3 origin,
   // It is correct that we use w2 as the weight for dir1, and w1 for dir2.
   vec3 dir1 = vec3(turn * rotate(mat4(1),  split_angle * w2, other_dir) * vec4(direction, 0));
   vec3 dir2 = vec3(turn * rotate(mat4(1), -split_angle * w1, other_dir) * vec4(direction, 0));
-
-  if (branch_pts == NULL) branch_pts = CArrayNew(0, sizeof(int));
+  
+  if (branch_pts == NULL) branch_pts = array__new(0, sizeof(int));
   
   int tree_pt = tree_pts->count - 3;  // Index of last point; each point has 3 coordinates.
-  CArrayAddElement(branch_pts, tree_pt);
+  array__add_item_val(branch_pts, tree_pt);
   tree_pt += 3;
-  CArrayAddElement(branch_pts, tree_pt);
-  CArrayAddElement(branch_pts, tree_pt);  // This last one is a placeholder for now.
+  array__add_item_val(branch_pts, tree_pt);
+  array__add_item_val(branch_pts, tree_pt);  // This last one is a placeholder for now.
   int second_branch_pt_index = branch_pts->count - 1;
   
-  Pt_info *parent_info = (Pt_info *)CArrayElement(tree_pt_info, parent_index);
+  Pt_info *parent_info = (Pt_info *)array__item_ptr(tree_pt_info, parent_index);
   parent_info->pt_type = pt_type_parent;
   
   parent_info->child1  = tree_pts->count;
   add_to_tree(origin, dir1, w1, avg_len, min_len, max_recursion - 1, parent_index);
 
   // The next-added tree_pt will be the second branch instance of this branch pt.
-  CArrayElementOfType(branch_pts, second_branch_pt_index, int) = tree_pts->count;
+  array__item_val(branch_pts, second_branch_pt_index, int) = tree_pts->count;
   
-  parent_info = (Pt_info *)CArrayElement(tree_pt_info, parent_index);
+  parent_info = (Pt_info *)array__item_ptr(tree_pt_info, parent_index);
   parent_info->child2 = tree_pts->count;
   add_to_tree(origin, dir2, w2, avg_len, min_len, max_recursion - 1, parent_index);
   
 }
 
-static float pt_dist(CArray pts, int i1, int i2) {
-  GLfloat *pt1 = (GLfloat *)CArrayElement(pts, i1);
-  GLfloat *pt2 = (GLfloat *)CArrayElement(pts, i2);
+static float pt_dist(Array pts, int i1, int i2) {
+  GLfloat *pt1 = (GLfloat *)array__item_ptr(pts, i1);
+  GLfloat *pt2 = (GLfloat *)array__item_ptr(pts, i2);
   
   GLfloat d[3];
   for (int i = 0; i < 3; ++i) d[i] = pt1[i] - pt2[i];
@@ -243,13 +244,13 @@ static float get_ring_radius_from_part_size(float ring_part_size, int num_ring_c
   return ring_part_size / (2 * cos(alpha));
 }
 
-static void get_pt(CArray pts, int index, vec3 &pt) {
-  GLfloat *pt_vals = (GLfloat *)CArrayElement(pts, index);
+static void get_pt(Array pts, int index, vec3 &pt) {
+  GLfloat *pt_vals = (GLfloat *)array__item_ptr(pts, index);
   for (int i = 0; i < 3; ++i) pt[i] = pt_vals[i];
 }
 
-static void set_pt(CArray pts, int index, vec3 &pt) {
-  GLfloat *pt_vals = (GLfloat *)CArrayElement(pts, index);
+static void set_pt(Array pts, int index, vec3 &pt) {
+  GLfloat *pt_vals = (GLfloat *)array__item_ptr(pts, index);
   for (int i = 0; i < 3; ++i) pt_vals[i] = pt[i];
 }
 
@@ -264,7 +265,7 @@ static void complete_ring(vec3 &upward, vec3 &center, vec3 &to_pt0, int num_ring
     
     if (i >= skip_pts) {
       vec3 pt = center + to_pt;
-      CArrayAddElement(ring_pts, pt[0]);
+      array__add_item_val(ring_pts, pt[0]);
     }
     to_pt = vec3(rot * vec4(to_pt, 0));
     
@@ -299,7 +300,7 @@ static void complete_ring_from_two_points(vec3 &upward, int num_ring_corners) {
 // Completes the ring started by the last point in ring_pts.
 static void complete_ring_from_one_point(vec3 &upward, vec3 &ring_center, int num_ring_corners, float ring_part_size) {
   
-  GLfloat *pt1_vals = (GLfloat *)CArrayElement(ring_pts, ring_pts->count - 1);
+  GLfloat *pt1_vals = (GLfloat *)array__item_ptr(ring_pts, ring_pts->count - 1);
   vec3     pt1      = vec3(pt1_vals[0], pt1_vals[1], pt1_vals[2]);
   vec3  to_pt1      = pt1 - ring_center;
   
@@ -309,7 +310,7 @@ static void complete_ring_from_one_point(vec3 &upward, vec3 &ring_center, int nu
 
 static void find_upward(int index, vec3 &upward) {
   
-  Pt_info *pt_info = (Pt_info *)CArrayElement(tree_pt_info, index);
+  Pt_info *pt_info = (Pt_info *)array__item_ptr(tree_pt_info, index);
   
   int   to_index = index;
   int from_index = index - 1;
@@ -319,8 +320,8 @@ static void find_upward(int index, vec3 &upward) {
     from_index = index;
   }
   
-  GLfloat *from = (GLfloat *)CArrayElement(tree_pts, from_index);
-  GLfloat *  to = (GLfloat *)CArrayElement(tree_pts,   to_index);
+  GLfloat *from = (GLfloat *)array__item_ptr(tree_pts, from_index);
+  GLfloat *  to = (GLfloat *)array__item_ptr(tree_pts,   to_index);
   
   for (int i = 0; i < 3; ++i) upward[i] = to[i] - from[i];
 }
@@ -329,9 +330,9 @@ static void find_upward(int index, vec3 &upward) {
 // This does nothing special for the trunk. It's only designed for regular child or parent points.
 static void find_ring_center(int index, vec3 &v) {
   
-  Pt_info *pt_info = (Pt_info *)CArrayElement(tree_pt_info, index);
+  Pt_info *pt_info = (Pt_info *)array__item_ptr(tree_pt_info, index);
   
-  GLfloat *tr_pt = (GLfloat *)CArrayElement(tree_pts, index);
+  GLfloat *tr_pt = (GLfloat *)array__item_ptr(tree_pts, index);
   vec3 tree_pt = vec3(tr_pt[0], tr_pt[1], tr_pt[2]);
   
   vec3 upward;
@@ -351,11 +352,11 @@ static void add_ring_to_parent(int parent_index) {
   
   //printf("%s(%d)\n", __func__, parent_index);
   
-  Pt_info *pt_info = (Pt_info *)CArrayElement(tree_pt_info, parent_index);
+  Pt_info *pt_info = (Pt_info *)array__item_ptr(tree_pt_info, parent_index);
   
   // How many ring corners does the child joint have?
-  Pt_info *child1_info = (Pt_info *)CArrayElement(tree_pt_info, pt_info->child1);
-  Pt_info *child2_info = (Pt_info *)CArrayElement(tree_pt_info, pt_info->child2);
+  Pt_info *child1_info = (Pt_info *)array__item_ptr(tree_pt_info, pt_info->child1);
+  Pt_info *child2_info = (Pt_info *)array__item_ptr(tree_pt_info, pt_info->child2);
   int child1_corners = child1_info->ring_end - child1_info->ring_start;
   int child2_corners = child2_info->ring_end - child2_info->ring_start;
   int child_ring_corners = child1_corners + child2_corners - 2;
@@ -384,7 +385,8 @@ static void add_ring_to_parent(int parent_index) {
   // * Make it easier to get a vec3 out of either tree_pts or ring_pts.
   
   // Set up the first point.
-  GLfloat *ch_pt = (GLfloat *)CArrayElement(ring_pts, child1_info->ring_start + 1);
+  GLfloat *ch_pt = (GLfloat *)array__item_ptr(ring_pts,
+                                              child1_info->ring_start + 1);
   vec3 child_pt = vec3(ch_pt[0], ch_pt[1], ch_pt[2]);
   vec3 to_child_pt = child_pt - ring_center;
   // Project child_pt onto the plane perpendicular to upward.
@@ -393,7 +395,7 @@ static void add_ring_to_parent(int parent_index) {
   vec3 first_pt = ring_center + ring_radius * first_pt_dir;
   
   pt_info->ring_start = ring_pts->count;
-  CArrayAddElement(ring_pts, first_pt[0]);
+  array__add_item_val(ring_pts, first_pt[0]);
   complete_ring_from_one_point(upward, ring_center, num_ring_corners, ring_part_size);
   pt_info->ring_end = ring_pts->count;
   
@@ -404,8 +406,8 @@ static void add_ring_to_parent(int parent_index) {
 
 static void set_ring_pt_of_top0(int child_index) {
   
-  Pt_info *    pt_info = (Pt_info *)CArrayElement(tree_pt_info, child_index);
-  Pt_info *top_pt_info = (Pt_info *)CArrayElement(tree_pt_info, child_index + 1);
+  Pt_info *    pt_info = (Pt_info *)array__item_ptr(tree_pt_info, child_index);
+  Pt_info *top_pt_info = (Pt_info *)array__item_ptr(tree_pt_info, child_index + 1);
   
   vec3 top0;
   get_pt(ring_pts, top_pt_info->ring_start, top0);
@@ -440,7 +442,7 @@ static void add_ring_to_child(int child_index, int num_ring_corners, float scale
   
   //printf("%s(%d)\n", __func__, child_index);
   
-  Pt_info *pt_info = (Pt_info *)CArrayElement(tree_pt_info, child_index);
+  Pt_info *pt_info = (Pt_info *)array__item_ptr(tree_pt_info, child_index);
   
   vec3 upward;
   find_upward(child_index, upward);
@@ -450,7 +452,7 @@ static void add_ring_to_child(int child_index, int num_ring_corners, float scale
   // Treat the root point as a special case.
   if (pt_info->parent == -1) {
     
-    GLfloat *tr_pt = (GLfloat *)CArrayElement(tree_pts, child_index);
+    GLfloat *tr_pt = (GLfloat *)array__item_ptr(tree_pts, child_index);
     vec3 trunk_pt = vec3(tr_pt[0], tr_pt[1], tr_pt[2]);
     
     vec3 outward = vec3(1, 0, 0);  // Guaranteed to be orth to upward since upward is (0, 1, 0).
@@ -458,7 +460,7 @@ static void add_ring_to_child(int child_index, int num_ring_corners, float scale
     vec3 first_pt = trunk_pt + radius * outward;
     
     pt_info->ring_start = ring_pts->count;
-    CArrayAddElement(ring_pts, first_pt[0]);
+    array__add_item_val(ring_pts, first_pt[0]);
     complete_ring_from_one_point(upward, trunk_pt, num_ring_corners, ring_part_size);
     pt_info->ring_end   = ring_pts->count;
     
@@ -470,9 +472,9 @@ static void add_ring_to_child(int child_index, int num_ring_corners, float scale
   }
   
   // Find our sibling.
-  Pt_info *parent_info  = (Pt_info *)CArrayElement(tree_pt_info, pt_info->parent);
+  Pt_info *parent_info  = (Pt_info *)array__item_ptr(tree_pt_info, pt_info->parent);
   int sibling_index     = parent_info->child1 ^ parent_info->child2 ^ child_index;
-  Pt_info *sibling_info = (Pt_info *)CArrayElement(tree_pt_info, sibling_index);
+  Pt_info *sibling_info = (Pt_info *)array__item_ptr(tree_pt_info, sibling_index);
   
   
   // Check if the sibling already has a ring.
@@ -480,8 +482,8 @@ static void add_ring_to_child(int child_index, int num_ring_corners, float scale
     
     int sibling_start = sibling_info->ring_start;
     pt_info->ring_start = ring_pts->count;
-    CArrayAddElementByPointer(ring_pts, CArrayElement(ring_pts, sibling_start + 1));
-    CArrayAddElementByPointer(ring_pts, CArrayElement(ring_pts, sibling_start));
+    array__add_item_ptr(ring_pts, array__item_ptr(ring_pts, sibling_start + 1));
+    array__add_item_ptr(ring_pts, array__item_ptr(ring_pts, sibling_start));
     complete_ring_from_two_points(upward, num_ring_corners);
     pt_info->ring_end = ring_pts->count;
     
@@ -511,8 +513,8 @@ static void add_ring_to_child(int child_index, int num_ring_corners, float scale
   
   // Set up the ring itself.
   pt_info->ring_start = ring_pts->count;
-  CArrayAddElement(ring_pts,  first_pt[0]);
-  CArrayAddElement(ring_pts, second_pt[0]);
+  array__add_item_val(ring_pts,  first_pt[0]);
+  array__add_item_val(ring_pts, second_pt[0]);
   complete_ring_from_two_points(upward, num_ring_corners);
   pt_info->ring_end = ring_pts->count;
   
@@ -527,11 +529,11 @@ static void add_ring_at_index(int index, int num_ring_corners, float scale) {
   
   //printf("%s(%d)\n", __func__, index);
   
-  Pt_info *pt_info = (Pt_info *)CArrayElement(tree_pt_info, index);
+  Pt_info *pt_info = (Pt_info *)array__item_ptr(tree_pt_info, index);
   
   if (pt_info->pt_type == pt_type_leaf) {
     
-    CArrayAddElementByPointer(ring_pts, CArrayElement(tree_pts, index));
+    array__add_item_ptr(ring_pts, array__item_ptr(tree_pts, index));
     pt_info->ring_start = ring_pts->count - 1;
     pt_info->ring_end   = ring_pts->count;
     
@@ -550,7 +552,7 @@ static void add_ring_at_index(int index, int num_ring_corners, float scale) {
 
 static void add_rings() {
   
-  CArrayFor(int *, leaf, leaves) {
+  array__for(int *, leaf, leaves, i) {
     add_ring_at_index(*leaf, 0, 0);
   }
   
@@ -560,19 +562,19 @@ static void add_rings() {
 static void make_a_tree() {
   
   if (tree_pts == NULL) {
-    tree_pts = CArrayNew(0, 3 * sizeof(GLfloat));
+    tree_pts = array__new(0, 3 * sizeof(GLfloat));
   }
   
   if (tree_pt_info == NULL) {
-    tree_pt_info = CArrayNew(0, sizeof(Pt_info));
+    tree_pt_info = array__new(0, sizeof(Pt_info));
   }
   
   if (leaves == NULL) {
-    leaves = CArrayNew(0, sizeof(int));
+    leaves = array__new(0, sizeof(int));
   }
   
   if (ring_pts == NULL) {
-    ring_pts = CArrayNew(0, 3 * sizeof(GLfloat));
+    ring_pts = array__new(0, 3 * sizeof(GLfloat));
   }
   
   vec3  origin    = vec3(0.0);
@@ -599,7 +601,7 @@ static void make_a_tree() {
 
 static void draw_ring_at_index(int index) {
   //printf("%s(%d)\n", __func__, index);
-  Pt_info *pt_info = (Pt_info *)CArrayElement(tree_pt_info, index);
+  Pt_info *pt_info = (Pt_info *)array__item_ptr(tree_pt_info, index);
   glDrawArrays(GL_LINE_LOOP, pt_info->ring_start, pt_info->ring_end - pt_info->ring_start);
   //printf("Just drew a line loop for points [%d,%d).\n", pt_info->ring_start, pt_info->ring_end);
 }
@@ -609,7 +611,7 @@ static void draw_ring_subtree_at_index(int index) {
   draw_ring_at_index(index);
   draw_ring_at_index(index + 1);
   
-  Pt_info *pt_info = (Pt_info *)CArrayElement(tree_pt_info, index + 1);
+  Pt_info *pt_info = (Pt_info *)array__item_ptr(tree_pt_info, index + 1);
   
   if (pt_info->pt_type == pt_type_parent) {
     draw_ring_subtree_at_index(pt_info->child1);
@@ -635,11 +637,11 @@ static void use_normal_vbo(GLuint normal_vbo) {
 
 // The normal points outward from the face with counterclockwise points; the reverse
 // bool changes that. This is useful for things like triangle strips.
-static vec3 &get_normal_from_last_tri(CArray pt_elts, bool reverse = false) {
+static vec3 &get_normal_from_last_tri(Array pt_elts, bool reverse = false) {
   static vec3 normal;
   vec3 pts[3];
   for (int i = 3; i > 0; --i) {
-    get_pt(ring_pts, CArrayElementOfType(pt_elts, pt_elts->count - i, GLuint), pts[3 - i]);
+    get_pt(ring_pts, array__item_val(pt_elts, pt_elts->count - i, GLuint), pts[3 - i]);
   }
   normal = normalize(cross(pts[1] - pts[0], pts[2] - pts[0]));
   if (reverse) normal *= -1;
@@ -652,11 +654,11 @@ static void setup_stick_bark() {
   restart_index = ring_pts->count;
   glPrimitiveRestartIndex(restart_index);
   
-  stick_bark_pts     = CArrayNew(0,                   sizeof(GLuint));
-  stick_bark_normals = CArrayNew(ring_pts->count, 3 * sizeof(GLfloat));
+  stick_bark_pts     = array__new(0,                   sizeof(GLuint));
+  stick_bark_normals = array__new(ring_pts->count, 3 * sizeof(GLfloat));
   
   // The stick bark normals will be set instead of added, so initialize it with all-0 data.
-  CArrayAddZeroedElements(stick_bark_normals, ring_pts->count);
+  array__add_zeroed_items(stick_bark_normals, ring_pts->count);
   
   for (int i = 0; i < tree_pts->count; i += 2) {
     

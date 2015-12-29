@@ -1,22 +1,21 @@
 // cstructs.h
 //
-// Overall header for including CArray, CMap, and CList.
+// https://github.com/tylerneylon/cstructs
+//
+// Overall header for including Array, List, and Map.
 // Friendly for linking with C++ sources.
 //
 
-#ifndef Client1_cstructs_h
-#define Client1_cstructs_h
+#pragma once
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-#include "CArray.h"
-#include "CList.h"
-#include "CMap.h"
+#include "array.h"
+#include "list.h"
+#include "map.h"
   
 #ifdef __cplusplus
 }
-#endif
-
 #endif
