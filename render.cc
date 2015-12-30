@@ -589,7 +589,7 @@ static void make_a_tree() {
   // TEMP
   if (false) {
     printf("The lines are:\n");
-    GLfloat *floats = (GLfloat *)tree_pts->elements;
+    GLfloat *floats = (GLfloat *)tree_pts->items;
     for (int i = 0; i < tree_pts->count; i += 2) {
       printf("  (%g, %g, %g) -> ", floats[i * 3],     floats[i * 3 + 1], floats[i * 3 + 2]);
       printf(  "(%g, %g, %g)\n",   floats[i * 3 + 3], floats[i * 3 + 4], floats[i * 3 + 5]);
@@ -662,10 +662,10 @@ static void setup_stick_bark() {
   
   for (int i = 0; i < tree_pts->count; i += 2) {
     
-    if (i) CArrayAddElement(stick_bark_pts, restart_index);
+    if (i) array__add_item_val(stick_bark_pts, restart_index);
     
-    Pt_info *a_info = (Pt_info *)CArrayElement(tree_pt_info, i);
-    Pt_info *b_info = (Pt_info *)CArrayElement(tree_pt_info, i + 1);
+    Pt_info *a_info = (Pt_info *)array__item_ptr(tree_pt_info, i);
+    Pt_info *b_info = (Pt_info *)array__item_ptr(tree_pt_info, i + 1);
     
     int start[2] = { a_info->ring_start,      b_info->ring_start };
     int   end[2] = { a_info->ring_end,        b_info->ring_end   };
@@ -676,7 +676,7 @@ static void setup_stick_bark() {
     int k = 1;
     for (int j = 0; j < num_points; ++j) {
       
-      CArrayAddElement(stick_bark_pts, index[k]);
+      array__add_item_val(stick_bark_pts, index[k]);
       
       if (j >= 2) {
         bool reverse = (k == 0);  // It's a triangle strip; every other triangle is oriented clockwise.
@@ -695,17 +695,17 @@ static void setup_stick_bark() {
   glGenBuffers(1, &stick_bark_vbo);
   glBindBuffer(GL_ARRAY_BUFFER, stick_bark_vbo);
   glBufferData(GL_ARRAY_BUFFER,
-               stick_bark_pts->count * stick_bark_pts->elementSize,
-               stick_bark_pts->elements,
+               stick_bark_pts->count * stick_bark_pts->item_size,
+               stick_bark_pts->items,
                GL_STATIC_DRAW);
 
   
-  CArray stick_bark_colors = CArrayNew(0, 3 * sizeof(GLfloat));
+  Array stick_bark_colors = array__new(0, 3 * sizeof(GLfloat));
   
   for (int i = 0; i < ring_pts->count; ++i) {
     GLfloat rgb[3];
     for (int j = 0; j < 3; ++j) rgb[j] = (float)rand() / RAND_MAX;
-    CArrayAddElement(stick_bark_colors, rgb);
+    array__add_item_val(stick_bark_colors, rgb);
   }
   
   GLuint colors_vbo;
@@ -719,22 +719,23 @@ static void setup_stick_bark() {
   set_buffer_data(stick_bark_normals);
 }
 
-#define add_from(x) CArrayAddElementByPointer(joint_bark_pts, CArrayElement(x##_arr, x##_idx % x))
+#define add_from(x) \
+    array__add_item_ptr(joint_bark_pts, array__item_ptr(x##_arr, x##_idx % x))
 
 // Inserts values into the joint_bark_pts array.
-static void add_triangles_for_joint_bark(CArray m_arr, CArray n_arr) {
+static void add_triangles_for_joint_bark(Array m_arr, Array n_arr) {
   
   if (false) {
     printf("m_arr: ");
-    CArrayFor(GLuint *, m_val, m_arr) {
-      if ((char *)m_val != m_arr->elements) printf(", ");
+    array__for(GLuint *, m_val, m_arr, i) {
+      if ((char *)m_val != m_arr->items) printf(", ");
       printf("%d", *m_val);
     }
     printf("\n");
     
     printf("n_arr: ");
-    CArrayFor(GLuint *, n_val, n_arr) {
-      if ((char *)n_val != n_arr->elements) printf(", ");
+    array__for(GLuint *, n_val, n_arr, i) {
+      if ((char *)n_val != n_arr->items) printf(", ");
       printf("%d", *n_val);
     }
     printf("\n");
@@ -772,55 +773,53 @@ static void add_triangles_for_joint_bark(CArray m_arr, CArray n_arr) {
     }
     
     vec3 normal = get_normal_from_last_tri(joint_bark_pts);
-    GLuint last_index = CArrayElementOfType(joint_bark_pts, joint_bark_pts->count - 1, GLuint);
+    GLuint last_index = array__item_val(joint_bark_pts, joint_bark_pts->count - 1, GLuint);
     set_pt(joint_bark_normals, last_index, normal);
     
   } while (m_idx < m || n_idx < n);
   
   if (false) {
     printf("Triangles:\n");
-    int i = 0;
-    CArrayFor(GLuint *, pt, joint_bark_pts) {
+    array__for(GLuint *, pt, joint_bark_pts, i) {
       printf("%s", i % 3 ? ", " : "  ");
       printf("%d", *pt);
       if (i % 3 == 2) printf("\n");
-      i++;
     }
     printf("\n");
   }
 }
 
 static bool pt_is_leaf(int index) {
-  Pt_info *pt_info = (Pt_info *)CArrayElement(tree_pt_info, index);
+  Pt_info *pt_info = (Pt_info *)array__item_ptr(tree_pt_info, index);
   return pt_info->pt_type == pt_type_leaf;
 }
 
 static void setup_subtree_joint_bark(int parent_index) {
   
-  Pt_info *parent_info = (Pt_info *)CArrayElement(tree_pt_info, parent_index);
+  Pt_info *parent_info = (Pt_info *)array__item_ptr(tree_pt_info, parent_index);
   int kids[2] = { parent_info->child1, parent_info->child2 };
   Pt_info *child_info[2];
   for (int i = 0; i < 2; ++i) {
-    child_info[i] = (Pt_info *)CArrayElement(tree_pt_info, kids[i]);
+    child_info[i] = (Pt_info *)array__item_ptr(tree_pt_info, kids[i]);
   }
   
-  CArray top    = CArrayNew(0, sizeof(GLuint));
-  CArray bottom = CArrayNew(0, sizeof(GLuint));
+  Array top    = array__new(0, sizeof(GLuint));
+  Array bottom = array__new(0, sizeof(GLuint));
   
   for (int r_index = parent_info->ring_start; r_index < parent_info->ring_end; ++r_index) {
-    CArrayAddElement(bottom, r_index);
+    array__add_item_val(bottom, r_index);
   }
   
   for (int i = 0; i < 2; ++i) {
     for (int r_index = child_info[i]->ring_start + 1; r_index < child_info[i]->ring_end; ++r_index) {
-      CArrayAddElement(top, r_index);
+      array__add_item_val(top, r_index);
     }
   }
   
   add_triangles_for_joint_bark(top, bottom);
   
-  CArrayDelete(top);
-  CArrayDelete(bottom);
+  array__delete(top);
+  array__delete(bottom);
   
   
   for (int i = 0; i < 2; ++i) {
@@ -834,8 +833,8 @@ static void setup_subtree_joint_bark(int parent_index) {
 // work fine, but will result in some adjacent triangles of the same color.
 static void setup_joint_bark() {
   
-  joint_bark_pts     = CArrayNew(0,                   sizeof(GLuint));
-  joint_bark_normals = CArrayNew(ring_pts->count, 3 * sizeof(GLfloat));
+  joint_bark_pts     = array__new(0,                   sizeof(GLuint));
+  joint_bark_normals = array__new(ring_pts->count, 3 * sizeof(GLfloat));
   
   // The normals will be set instead of added, so we premark the space as used.
   joint_bark_normals->count = ring_pts->count;
@@ -845,8 +844,8 @@ static void setup_joint_bark() {
   glGenBuffers(1, &joint_bark_vbo);
   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, joint_bark_vbo);
   glBufferData(GL_ELEMENT_ARRAY_BUFFER,
-               joint_bark_pts->count * joint_bark_pts->elementSize,
-               joint_bark_pts->elements,
+               joint_bark_pts->count * joint_bark_pts->item_size,
+               joint_bark_pts->items,
                GL_STATIC_DRAW);
   
   glGenBuffers(1, &joint_bark_normal_vbo);
@@ -874,8 +873,8 @@ extern "C" {
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
     
     make_a_tree();
-    GLsizeiptr    data_size = tree_pts->count * tree_pts->elementSize;
-    const GLvoid *data      = tree_pts->elements;
+    GLsizeiptr    data_size = tree_pts->count * tree_pts->item_size;
+    const GLvoid *data      = tree_pts->items;
     num_pts                 = tree_pts->count;
 
     if (false) {
@@ -902,12 +901,10 @@ extern "C" {
     
     if (false) {
       printf("branch_pt triples:\n");
-      int i = 0;
-      CArrayFor(int *, tree_pt_idx, branch_pts) {
+      array__for(int *, tree_pt_idx, branch_pts, i) {
         if (i % 3 == 0) printf("  (");
         printf("%d", *tree_pt_idx);
         printf("%s", i % 3 == 2 ? ")\n" : ", ");
-        ++i;
       }
     }
     
@@ -916,8 +913,7 @@ extern "C" {
       // Print the data in tree_pt_info.
       const char *type_str[] = { "leaf", "parent", "child " };
       printf("tree_pt_info:\n");
-      int i = 0;
-      CArrayFor(Pt_info *, pt_info, tree_pt_info) {
+      array__for(Pt_info *, pt_info, tree_pt_info, i) {
         printf("  %d: ", i);
         printf("%s", type_str[pt_info->pt_type]);
         if (pt_info->pt_type == pt_type_parent) {
@@ -926,7 +922,6 @@ extern "C" {
           printf(" with parent %d", pt_info->parent);
         }
         printf(" ring=[%d,%d)\n", pt_info->ring_start, pt_info->ring_end);
-        ++i;
       }
       
     }
@@ -935,8 +930,8 @@ extern "C" {
       
       // Print out the leaves.
       printf("leaves:\n  ");
-      CArrayFor(int *, leaf, leaves) {
-        if ((char *)leaf != leaves->elements) printf(", ");
+      array__for(int *, leaf, leaves, i) {
+        if ((char *)leaf != leaves->items) printf(", ");
         printf("%d", *leaf);
       }
       printf("\n");
@@ -948,7 +943,10 @@ extern "C" {
     GLuint rings_vbo;
     glGenBuffers(1, &rings_vbo);
     glBindBuffer(GL_ARRAY_BUFFER, rings_vbo);
-    glBufferData(GL_ARRAY_BUFFER, ring_pts->count * ring_pts->elementSize, ring_pts->elements, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER,
+                 ring_pts->count * ring_pts->item_size,
+                 ring_pts->items,
+                 GL_STATIC_DRAW);
     glVertexAttribPointer(0,             // location
                           3,             // num coords
                           GL_FLOAT,      // coord type
@@ -970,10 +968,10 @@ extern "C" {
         
         Pt_info *pt_info;
         
-        pt_info = (Pt_info *)CArrayElement(tree_pt_info, i);
+        pt_info = (Pt_info *)array__item_ptr(tree_pt_info, i);
         stick_line_indexes[i]     = pt_info->ring_pt_of_top0;
         
-        pt_info = (Pt_info *)CArrayElement(tree_pt_info, i + 1);
+        pt_info = (Pt_info *)array__item_ptr(tree_pt_info, i + 1);
         stick_line_indexes[i + 1] = pt_info->ring_start;
         
         if (i < 10) {

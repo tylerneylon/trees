@@ -191,7 +191,10 @@ static int lines__draw_all(lua_State *L) {
   ensure_gl_data_is_ready();
 
   // Set up the uniforms. The color has been set in gl_init().
-  position__set_vp_at_loc(vp_loc);
+  
+  // TODO IMPORTANT Make sure the vp matrix is set in the shader.
+  
+  // position__set_vp_at_loc(vp_loc);
 
   // Draw the lines.
   glDrawArrays(GL_LINES,           // mode
@@ -213,8 +216,8 @@ void lines__load_lib(lua_State *L) {
       {"reset",     lines__reset},
       {"set_scale", lines__set_scale},
       {NULL, NULL}};
-  luaL_register(L, "lines", lib);  // --> stack = [.., lines]
-  lua_pop(L, 1);                  // --> stack = [..]
+  luaL_newlib(L, lib);        // --> stack = [.., lines]
+  lua_setglobal(L, "lines");  // --> stack = [..]
 
   gl_init();
 }
