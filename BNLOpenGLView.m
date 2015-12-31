@@ -8,11 +8,19 @@
 
 #import "BNLOpenGLView.h"
 
+#include "file.h"
+
+#include "lua.h"
+#include "lualib.h"
+#include "lauxlib.h"
+
 #include "render.h"
+
 
 // Internal globals.
 
 static BNLOpenGLView *glView = nil;
+static lua_State *L = NULL;
 
 
 // Internal class members.
@@ -107,6 +115,21 @@ static CVReturn displayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeSt
   self.openGLContext = [[NSOpenGLContext alloc] initWithFormat:self.pixelFormat shareContext:nil];
   GLint swap = 1;
   [self.openGLContext setValues:&swap forParameter:NSOpenGLCPSwapInterval];
+  
+  if (do_use_lua) {
+    L = luaL_newstate();
+    luaL_openlibs(L);
+    char *filepath = file__get_path("render.lua");
+      // stack = []
+    luaL_dofile(L, filepath);
+      // stack = [render]
+    lua_setglobal(L, "render");
+      // stack = []
+    
+    
+    // TODO HERE Run the Lua init fn; next up run the draw fn every cycle.
+    
+  }
 }
 
 - (void)reshape {

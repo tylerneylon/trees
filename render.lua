@@ -39,12 +39,14 @@ end
 
 -- This is expected to be called once at program startup.
 function render.init()
+  print('render.init')  -- TEMP
   tree = make_tree.make()
   setup_lines()
 end
 
 -- This is expected to be called once per render cycle.
 function render.draw()
+  print('render.draw')  -- TEMP
   -- TODO HERE
 end
 
