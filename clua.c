@@ -3,10 +3,14 @@
 
 #include "clua.h"
 
+// Local includes.
+#include "file.h"
+
 // Library includes.
 #include "lauxlib.h"
 #include "lualib.h"
 
+// System includes.
 #include <errno.h>
 #include <stdlib.h>
 #include <string.h>
@@ -138,8 +142,65 @@ alldone:;
   lua_pop(L, nresults);
 }
 
+static const char *clua__lua_dir() {
+  static char lua_dir[512] = "";
+  
+  if (strlen(lua_dir) > 0) { return lua_dir; }
+  
+  // The call to file__get_path is mainly for win/mac; it returns NULL on linux.
+  const char *land_lua_path = file__get_path("render.lua");
+  
+  if (land_lua_path == NULL) {
+    // If land.lua isn't found, then find the closest existing <prefix>/lua
+    // path, where <prefix> is a prefix subpath of the current directory.
+    static char cwd[MAXPATHLEN];
+    getcwd(cwd, MAXPATHLEN);
+    char *last_dir_sep = cwd + strlen(cwd);
+    do {
+      *last_dir_sep = '\0';
+      snprintf(lua_dir, 512, "%s/lua", cwd);
+      if (file__exists(lua_dir)) return lua_dir;
+      last_dir_sep = strrchr(cwd, '/');
+    } while (last_dir_sep);
+    // If we get here, there is no clear choice.
+    // Our last resort is ./lua, which doesn't exist!
+    dbg__printf("Warning: failed to locate an existing lua directory.\n");
+    getcwd(cwd, MAXPATHLEN);
+    snprintf(lua_dir, 512, "%s/lua", cwd);
+  } else {
+    // Extract from land_lua_path the directory of our Lua files.
+    int dir_len = (int)(strrchr(land_lua_path, file__path_sep) - land_lua_path);
+    snprintf(lua_dir, 512, "%.*s", dir_len, land_lua_path);
+  }
+  
+  return lua_dir;
+}
+
 
 // C-public functions.
+
+lua_State *clua__new_state() {
+  lua_State *L = luaL_newstate();
+  luaL_openlibs(L);
+  
+  char new_lua_path[1024];
+  snprintf(new_lua_path, 1024, "%s%c?.lua;", clua__lua_dir(), file__path_sep);
+  
+  lua_getglobal  (L, "package");
+  // Stack = [package]
+  lua_pushstring (L, new_lua_path);
+  // Stack = [package, new_lua_path]
+  lua_getfield   (L, -2, "path");
+  // Stack = [package, new_lua_path, package.path]
+  lua_concat     (L,  2);
+  // Stack = [package, joined_lua_paths]
+  lua_setfield   (L, -2, "path");
+  // Stack = [package]
+  lua_pop        (L,  1);
+  // Stack = []
+  
+  return L;
+}
 
 // Most of this function is from a similar function in the book Programming in
 // Lua by Roberto Ierusalimschy, 3rd edition.

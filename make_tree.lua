@@ -19,6 +19,7 @@ local Vec3 = require 'Vec3'
 
 local max_tree_height    = 10
 local branch_size_factor = 0.79
+local do_dbg_print       = false
 
 
 -- Internal functions.
@@ -31,6 +32,11 @@ end
 
 local function val_near_avg(avg)
   return uniform_rand(avg * 0.85, avg * 1.15)
+end
+
+local function dbg_pr(...)
+  if not do_dbg_print then return end
+  print(string.format(...))
 end
 
 -- TEMP NOTES
@@ -110,8 +116,8 @@ local function add_to_tree(args, tree, max_recursion)
   local other_dir = dir:cross(arbit_dir)
 
   -- TEMP
-  print('turn_angle=' .. turn_angle)
-  print('args.direction=' .. args.direction:as_str())
+  dbg_pr('turn_angle=' .. turn_angle)
+  dbg_pr('args.direction=' .. args.direction:as_str())
   assert(getmetatable(args.direction) == Vec3)
 
   local turn = Mat3:rotate(turn_angle, args.direction)
@@ -154,9 +160,6 @@ function make_tree.make()
   -- Eventually:
   -- add_rings()
 end
-
--- TEMP TEST
-tree = make_tree.make()
 
 
 return make_tree

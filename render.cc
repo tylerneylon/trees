@@ -12,14 +12,6 @@ extern "C" {
 #include "matrix_transform.hpp"
 using namespace glm;
 
-extern "C" {
-#include "file.h"
-  
-#include "lua.h"
-#include "lualib.h"
-#include "lauxlib.h"
-}
-
 #include <stdio.h>
 
 #define max_tree_height 10
@@ -1003,13 +995,6 @@ extern "C" {
       }
       
     }
-    
-    // TEMP TODO Cleanup. This is test code to make sure I can
-    // run Lua from C.
-    lua_State *L = luaL_newstate();
-    luaL_openlibs(L);
-    char *filepath = file__get_path("test.lua");
-    luaL_dofile(L, filepath);
     
   }  // render__init
   

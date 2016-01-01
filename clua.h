@@ -11,6 +11,7 @@
 
 // C-public functions.
 
+lua_State * clua__new_state();
 void        clua__call(lua_State *L, const char *mod,
                        const char *fn, const char *types, ...);
 void        clua__run          (lua_State *L, const char *cmd);

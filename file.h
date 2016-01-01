@@ -27,3 +27,5 @@ char *file__contents(const char *path, size_t *size);
 
 // Returns nonzero on success.
 int   file__write(const char *path, const char *contents);
+
+#define file__path_sep '/'

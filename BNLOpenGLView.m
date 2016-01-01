@@ -2,19 +2,19 @@
 //  BNLOpenGLView.m
 //  Trees
 //
-//  Created by Tyler Neylon on 6/5/14.
-//  Copyright (c) 2014 Tyler Neylon. All rights reserved.
-//
 
 #import "BNLOpenGLView.h"
 
+// Local includes.
+#include "clua.h"
 #include "file.h"
+#include "lines.h"
+#include "render.h"
 
+// Library includes.
 #include "lua.h"
 #include "lualib.h"
 #include "lauxlib.h"
-
-#include "render.h"
 
 
 // Internal globals.
@@ -76,6 +76,28 @@ static CVReturn displayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeSt
   return kCVReturnSuccess;
 }
 
+static void lua_init() {
+  L = clua__new_state();
+  
+  // Load the standard library.
+  luaL_openlibs(L);
+  
+  // Load the render modules.
+  char *filepath = file__get_path("render.lua");
+  // stack = []
+  luaL_dofile(L, filepath);
+  // stack = [render]
+  lua_setglobal(L, "render");
+  // stack = []
+  
+  // Load the lines module.
+  lines__load_lib(L);
+  // stack = []
+  
+  // Call render.init.
+  clua__call(L, "render", "init", "");  // "" --> no input, no output
+}
+
 
 
 // Implementation.
@@ -116,20 +138,7 @@ static CVReturn displayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeSt
   GLint swap = 1;
   [self.openGLContext setValues:&swap forParameter:NSOpenGLCPSwapInterval];
   
-  if (do_use_lua) {
-    L = luaL_newstate();
-    luaL_openlibs(L);
-    char *filepath = file__get_path("render.lua");
-      // stack = []
-    luaL_dofile(L, filepath);
-      // stack = [render]
-    lua_setglobal(L, "render");
-      // stack = []
-    
-    
-    // TODO HERE Run the Lua init fn; next up run the draw fn every cycle.
-    
-  }
+  if (do_use_lua) lua_init();
 }
 
 - (void)reshape {
