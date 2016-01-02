@@ -39,6 +39,10 @@ static lua_State *L = NULL;
 
 // Functions.
 
+static void transform_callback(GLint transform_loc) {
+  // TODO HERE
+}
+
 static CGEventRef eventCallback(CGEventTapProxy proxy, CGEventType type, CGEventRef event, void *refcon) {
   
   NSRect viewFrameInScreenCoords = [[glView window] convertRectToScreen:glView.frame];
@@ -63,8 +67,12 @@ static void runloop() {
   CGLLockContext      (glView.cglContext);
   CGLSetCurrentContext(glView.cglContext);
   
-  render__draw(glView.xWindowSize, glView.yWindowSize);
-    
+  if (do_use_lua) {
+    clua__call(L, "render", "draw", "");  // "" --> no input or output
+  } else {
+    render__draw(glView.xWindowSize, glView.yWindowSize);
+  }
+  
   CGLFlushDrawable(glView.cglContext);
   CGLUnlockContext(glView.cglContext);
 }
@@ -90,9 +98,10 @@ static void lua_init() {
   lua_setglobal(L, "render");
   // stack = []
   
-  // Load the lines module.
+  // Load and set up the lines module.
   lines__load_lib(L);
   // stack = []
+  lines__set_transform_callback(transform_callback);
   
   // Call render.init.
   clua__call(L, "render", "init", "");  // "" --> no input, no output

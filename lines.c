@@ -5,16 +5,16 @@
 
 #include "lines.h"
 
+// Local includes.
 #include "cstructs/cstructs.h"
 #include "glhelp.h"
+
+// Library includes.
 #include "lua/lauxlib.h"
-//#include "oswrap/oswrap.h"
-//#include "position.h"
-//#include "vec.h"
 
-#include <OpenGL/gl3.h>
-
+// OpenGL and standard library includes.
 #include <assert.h>
+#include <OpenGL/gl3.h>
 
 
 // Macros.
@@ -28,6 +28,8 @@
 static GLuint  program;
 static GLint    vp_loc;
 static GLint color_loc;
+
+static lines__TransformCallback transform_callback = NULL;
 
 static float line_scale = 1.0;
 
@@ -194,6 +196,9 @@ static int lines__draw_all(lua_State *L) {
   
   // TODO IMPORTANT Make sure the vp matrix is set in the shader.
   
+  assert(transform_callback);
+  transform_callback(vp_loc);
+  
   // position__set_vp_at_loc(vp_loc);
 
   // Draw the lines.
@@ -220,4 +225,8 @@ void lines__load_lib(lua_State *L) {
   lua_setglobal(L, "lines");  // --> stack = [..]
 
   gl_init();
+}
+
+void lines__set_transform_callback(lines__TransformCallback callback) {
+  transform_callback = callback;
 }

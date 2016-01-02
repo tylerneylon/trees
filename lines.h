@@ -31,4 +31,12 @@
 
 #include "lua/lua.h"
 
+#include <OpenGL/gl3.h>
+
+// A lines__TransformCallback is a function that accepts the location of a
+// shader uniform and sets a mat4 matrix value representing the current
+// transformation to be applied to all vertices.
+typedef void (*lines__TransformCallback)(GLint);
+
 void lines__load_lib(lua_State *L);
+void lines__set_transform_callback(lines__TransformCallback callback);
