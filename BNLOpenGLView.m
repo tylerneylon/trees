@@ -5,10 +5,13 @@
 
 #import "BNLOpenGLView.h"
 
+// TODO Review includes.
+
 // Local includes.
 #include "clua.h"
 #include "file.h"
 #include "lines.h"
+#include "luarender.h"
 #include "render.h"
 
 // Library includes.
@@ -20,7 +23,6 @@
 // Internal globals.
 
 static BNLOpenGLView *glView = nil;
-static lua_State *L = NULL;
 
 
 // Internal class members.
@@ -38,10 +40,6 @@ static lua_State *L = NULL;
 
 
 // Functions.
-
-static void transform_callback(GLint transform_loc) {
-  // TODO HERE
-}
 
 static CGEventRef eventCallback(CGEventTapProxy proxy, CGEventType type, CGEventRef event, void *refcon) {
   
@@ -68,7 +66,7 @@ static void runloop() {
   CGLSetCurrentContext(glView.cglContext);
   
   if (do_use_lua) {
-    clua__call(L, "render", "draw", "");  // "" --> no input or output
+    luarender__draw();
   } else {
     render__draw(glView.xWindowSize, glView.yWindowSize);
   }
@@ -83,30 +81,6 @@ static CVReturn displayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeSt
   runloop();
   return kCVReturnSuccess;
 }
-
-static void lua_init() {
-  L = clua__new_state();
-  
-  // Load the standard library.
-  luaL_openlibs(L);
-  
-  // Load the render modules.
-  char *filepath = file__get_path("render.lua");
-  // stack = []
-  luaL_dofile(L, filepath);
-  // stack = [render]
-  lua_setglobal(L, "render");
-  // stack = []
-  
-  // Load and set up the lines module.
-  lines__load_lib(L);
-  // stack = []
-  lines__set_transform_callback(transform_callback);
-  
-  // Call render.init.
-  clua__call(L, "render", "init", "");  // "" --> no input, no output
-}
-
 
 
 // Implementation.
@@ -147,7 +121,7 @@ static void lua_init() {
   GLint swap = 1;
   [self.openGLContext setValues:&swap forParameter:NSOpenGLCPSwapInterval];
   
-  if (do_use_lua) lua_init();
+  if (do_use_lua) luarender__init();
 }
 
 - (void)reshape {
