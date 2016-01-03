@@ -5,19 +5,9 @@
 
 #import "BNLOpenGLView.h"
 
-// TODO Review includes.
-
 // Local includes.
-#include "clua.h"
-#include "file.h"
-#include "lines.h"
 #include "luarender.h"
 #include "render.h"
-
-// Library includes.
-#include "lua.h"
-#include "lualib.h"
-#include "lauxlib.h"
 
 
 // Internal globals.
