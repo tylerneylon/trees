@@ -1,9 +1,13 @@
 #include "render.h"
 
+// C-only includes.
 extern "C" {
 #include "cstructs/cstructs.h"
 #include "glhelp.h"
 }
+
+// C++ friendly includes.
+#include "config.h"
 
 #include <OpenGL/gl3.h>
 
@@ -13,11 +17,6 @@ extern "C" {
 using namespace glm;
 
 #include <stdio.h>
-
-#define max_tree_height 10
-#define zoom_scale 2.3
-#define branch_size_factor 0.79
-#define max_ring_corners 8
 
 
 // Internal types and globals.

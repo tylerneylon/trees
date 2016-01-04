@@ -15,7 +15,7 @@ extern "C" {
 #endif
 
 void luarender__init();
-void luarender__draw();
+void luarender__draw(int w, int h);
 
 #ifdef __cplusplus
 }

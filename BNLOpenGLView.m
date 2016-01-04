@@ -6,6 +6,7 @@
 #import "BNLOpenGLView.h"
 
 // Local includes.
+#include "config.h"
 #include "luarender.h"
 #include "render.h"
 
@@ -56,7 +57,7 @@ static void runloop() {
   CGLSetCurrentContext(glView.cglContext);
   
   if (do_use_lua) {
-    luarender__draw();
+    luarender__draw(glView.xWindowSize, glView.yWindowSize);
   } else {
     render__draw(glView.xWindowSize, glView.yWindowSize);
   }

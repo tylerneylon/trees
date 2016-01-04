@@ -47,7 +47,7 @@ end
 -- This is expected to be called once per render cycle.
 function render.draw()
   print('render.draw')  -- TEMP
-  -- TODO HERE
+  lines.draw_all()
 end
 
 
