@@ -127,12 +127,19 @@ local function add_to_tree(args, tree, max_recursion)
 
   local parent = #tree
 
+  -- TODO Consider making some things not in args.
+  --      OR crazy idea here, don't edit args itself
+
   args.direction = dir1
   args.parent = parent
+  args.origin = origin
+  args.avg_len = avg_len
   add_to_tree(args, tree, max_recursion - 1)
 
   args.direction = dir2
   args.parent = parent
+  args.origin = origin
+  args.avg_len = avg_len
   add_to_tree(args, tree, max_recursion - 1)
 
   return tree
@@ -145,7 +152,6 @@ function make_tree.make()
   local tree_add_params = {
     origin        = Vec3:new(0, 0, 0),
     direction     = Vec3:new(0, 1, 0),
-    weight        = 1.0,
     avg_len       = 0.5,
     min_len       = 0.01,
     parent        = -1,      -- TODO Add clarifying comment.
