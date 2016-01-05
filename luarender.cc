@@ -60,6 +60,15 @@ static void transform_callback(GLint transform_loc) {
   //mat3 normal_matrix = mat3(view * model);
 }
 
+#define set_lua_global(name)   \
+    lua_pushnumber(L, name);   \
+    lua_setglobal(L, #name);
+
+static void set_lua_config_constants() {
+  set_lua_global(max_tree_height);
+  set_lua_global(branch_size_factor);
+}
+
 
 // Public functions.
 
@@ -68,6 +77,9 @@ extern "C" void luarender__init() {
   
   // Load the standard library.
   luaL_openlibs(L);
+
+  // Set shared constants from the conifg.h file.
+  set_lua_config_constants();
   
   // Load the render modules.
   char *filepath = file__get_path("render.lua");

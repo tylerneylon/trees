@@ -88,7 +88,8 @@ static CVReturn displayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeSt
 }
 
 - (void)awakeFromNib {
-  // TEMP TODO Uncomment the following line to produce a different tree every run.
+  // Uncomment the following line to produce a different tree every run.
+  // There is another random seed set in the Lua scripts.
   srand((unsigned int)time(NULL));
   
   glView = self;

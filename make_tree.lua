@@ -17,8 +17,15 @@ local Vec3 = require 'Vec3'
 
 -- Internal globals.
 
-local max_tree_height    = 10
-local branch_size_factor = 0.79
+-- It is expected that the following globals be set from C before this module is
+-- loaded:
+local missing_global_fmt = "Expected the %s global to be set from C."
+local function check_global(name)
+  assert(_G[name], missing_global_fmt:format(name))
+end
+check_global('max_tree_height')
+check_global('branch_size_factor')
+
 local do_dbg_print       = false
 
 
