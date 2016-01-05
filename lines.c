@@ -194,13 +194,9 @@ static int lines__draw_all(lua_State *L) {
 
   // Set up the uniforms. The color has been set in gl_init().
   
-  // TODO IMPORTANT Make sure the vp matrix is set in the shader.
-  
   assert(transform_callback);
   transform_callback(vp_loc);
   
-  // position__set_vp_at_loc(vp_loc);
-
   // Draw the lines.
   glDrawArrays(GL_LINES,           // mode
                0,                  // start

@@ -35,29 +35,16 @@ static lua_State *L = NULL;
 static float aspect_ratio;
 static float angle = 0.0f;
 
+static mat4 mvp;
+
 
 // Internal functions.
 
 static void transform_callback(GLint transform_loc) {
-  
-  // TODO Consider pulling some of this work out in case this function is called
-  //      more than once within a single render cycle.
-  
-  mat4 projection = perspective(45.0f, aspect_ratio, 0.1f, 1000.0f);
-  mat4 view  = lookAt(vec3(4.0, 4.0, 2.0), vec3(0.0), vec3(0.0, 1.0, 0.0));
-  
-  mat4 model = rotate(mat4(1.0), angle, vec3(0.0, 1.0, 0.0));
-  model = translate(model, vec3(0, -3, 0));
-  model = scale(model, vec3(zoom_scale));
-  
-  mat4 mvp = projection * view * model;
-  
   glUniformMatrix4fv(transform_loc,  // uniform location
                      1,              // count
                      GL_FALSE,       // don't use transpose
                      &mvp[0][0]);    // src matrix
-
-  //mat3 normal_matrix = mat3(view * model);
 }
 
 #define set_lua_global(name)   \
@@ -106,9 +93,21 @@ extern "C" void luarender__init() {
 }
 
 extern "C" void luarender__draw(int w, int h) {
+  
+  // Clear view and set the aspect ratio and rotation angle.
   glViewport(0, 0, w, h);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
   aspect_ratio = (float)w / h;
   angle += 0.01;
+  
+  // Recompute the mvp matrix.
+  mat4 projection = perspective(45.0f, aspect_ratio, 0.1f, 1000.0f);
+  mat4 view  = lookAt(vec3(4.0, 4.0, 2.0), vec3(0.0), vec3(0.0, 1.0, 0.0));
+  mat4 model = rotate(mat4(1.0), angle, vec3(0.0, 1.0, 0.0));
+  model = translate(model, vec3(0, -3, 0));
+  model = scale(model, vec3(zoom_scale));
+  mvp = projection * view * model;
+
+  // Call Lua render.draw() to finish.
   clua__call(L, "render", "draw", "");  // "" --> no input or output
 }

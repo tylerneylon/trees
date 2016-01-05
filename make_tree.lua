@@ -26,7 +26,8 @@ end
 check_global('max_tree_height')
 check_global('branch_size_factor')
 
-local do_dbg_print       = false
+local do_dbg_print = false
+local no_parent    = -1  -- This is a parent index value for the root.
 
 
 -- Internal functions.
@@ -154,7 +155,7 @@ function make_tree.make()
     direction     = Vec3:new(0, 1, 0),
     avg_len       = 0.5,
     min_len       = 0.01,
-    parent        = -1,      -- TODO Add clarifying comment.
+    parent        = no_parent,  -- This is a special index value for the root.
     max_recursion = max_tree_height
   }
 
