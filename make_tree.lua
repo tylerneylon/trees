@@ -66,25 +66,30 @@ local function add_line(tree, from, to, parent)
   tree[#tree + 1] = new_item
 end
 
-local function add_to_tree(args, tree, max_recursion)
+local function add_to_tree(args, tree)
+  assert(args.parent)
+  assert(getmetatable(args.direction) == Vec3)
   tree = tree or {}
-  max_recursion = max_recursion or args.max_recursion
 
   args.direction:normalize()
   local len = val_near_avg(args.avg_len)
-  assert(args.parent) -- TEMP
   add_line(tree, args.origin, args.origin + len * args.direction, args.parent)
 
-  if len < args.min_len or max_recursion == 0 then
-    -- TODO Do we need a leaves list? Leaving out for now.
+  if len < args.min_len or args.max_recursion == 0 then
     return
   end
 
   local w1 = val_near_avg(0.5)
   local w2 = 1 - w1
 
-  local avg_len = args.avg_len * branch_size_factor
-  local origin  = args.origin + len * args.direction
+  local subtree_args = {
+    min_len       = args.min_len,
+    max_recursion = args.max_recursion - 1
+  }
+
+  subtree_args.avg_len = args.avg_len * branch_size_factor
+  subtree_args.origin  = args.origin + len * args.direction
+  subtree_args.parent  = #tree
 
   -- TODO Basically, I think the angle-choosing code below is not very good.
   --      I think it gives poorly distributed angles. Improve.
@@ -118,29 +123,17 @@ local function add_to_tree(args, tree, max_recursion)
   -- TEMP
   dbg_pr('turn_angle=' .. turn_angle)
   dbg_pr('args.direction=' .. args.direction:as_str())
-  assert(getmetatable(args.direction) == Vec3)
 
   local turn = Mat3:rotate(turn_angle, args.direction)
 
   local dir1 = turn * Mat3:rotate( split_angle * w1, other_dir) * args.direction
   local dir2 = turn * Mat3:rotate(-split_angle * w2, other_dir) * args.direction
 
-  local parent = #tree
+  subtree_args.direction = dir1
+  add_to_tree(subtree_args, tree)
 
-  -- TODO Consider making some things not in args.
-  --      OR crazy idea here, don't edit args itself
-
-  args.direction = dir1
-  args.parent = parent
-  args.origin = origin
-  args.avg_len = avg_len
-  add_to_tree(args, tree, max_recursion - 1)
-
-  args.direction = dir2
-  args.parent = parent
-  args.origin = origin
-  args.avg_len = avg_len
-  add_to_tree(args, tree, max_recursion - 1)
+  subtree_args.direction = dir2
+  add_to_tree(subtree_args, tree)
 
   return tree
 end
@@ -166,6 +159,12 @@ function make_tree.make()
   -- Eventually:
   -- add_rings()
 end
+
+
+-- Initialization.
+
+-- Seed random number generation.
+math.randomseed(os.time())
 
 
 return make_tree

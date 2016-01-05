@@ -71,15 +71,22 @@ extern "C" void luarender__init() {
   
   // Load the render modules.
   char *filepath = file__get_path("render.lua");
-  // stack = []
+    // stack = []
   luaL_dofile(L, filepath);
-  // stack = [render]
+    // stack = [render or error_msg]
+  if (lua_type(L, 1) == LUA_TSTRING) {
+    const char *error_msg = lua_tostring(L, 1);
+    // stack = [error_msg]
+    printf("%s\n", error_msg);
+    exit(1);
+  }
+    // stack = [render]
   lua_setglobal(L, "render");
-  // stack = []
+    // stack = []
   
   // Load and set up the lines module.
   lines__load_lib(L);
-  // stack = []
+    // stack = []
   lines__set_transform_callback(transform_callback);
   
   // Call render.init.
