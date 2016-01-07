@@ -12,6 +12,11 @@
 // The value is expected to be YES or NO.
 #define    do_use_lua         YES
 
+// If this is YES, tree generation is restricted to 2D. This project overall is
+// focused on the 3d case, and the 2d case exists as a way to explore a
+// simplified version of the algorithms used.
+#define    is_tree_2d         YES
+
 #define    max_tree_height    10
 
 // This modifies the view transform by effectively zooming toward or away from

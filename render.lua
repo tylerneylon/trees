@@ -14,7 +14,12 @@ local render = {}
 -- Expected to be preloaded:
 --  lines
 
-local make_tree = require 'make_tree'
+local make_tree
+if is_tree_2d then
+  make_tree = require 'make_tree_2d'
+else
+  make_tree = require 'make_tree'
+end
 
 
 -- Internal globals.

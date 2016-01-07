@@ -27,6 +27,10 @@ extern "C" {
 using namespace glm;
 
 
+// Define YES/NO so this file can work with Objective-C style macro values.
+#define YES 1
+#define NO  0
+
 
 // Internal globals.
 
@@ -47,13 +51,18 @@ static void transform_callback(GLint transform_loc) {
                      &mvp[0][0]);    // src matrix
 }
 
-#define set_lua_global(name)   \
-    lua_pushnumber(L, name);   \
+#define set_lua_global_num(name)   \
+    lua_pushnumber(L, name);       \
+    lua_setglobal(L, #name);
+
+#define set_lua_global_bool(name)   \
+    lua_pushboolean(L, name);       \
     lua_setglobal(L, #name);
 
 static void set_lua_config_constants() {
-  set_lua_global(max_tree_height);
-  set_lua_global(branch_size_factor);
+  set_lua_global_num(max_tree_height);
+  set_lua_global_num(branch_size_factor);
+  set_lua_global_bool(is_tree_2d);
 }
 
 
@@ -98,11 +107,20 @@ extern "C" void luarender__draw(int w, int h) {
   glViewport(0, 0, w, h);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
   aspect_ratio = (float)w / h;
-  angle += 0.01;
+  if (!is_tree_2d) angle += 0.01;
   
   // Recompute the mvp matrix.
   mat4 projection = perspective(45.0f, aspect_ratio, 0.1f, 1000.0f);
   mat4 view  = lookAt(vec3(4.0, 4.0, 2.0), vec3(0.0), vec3(0.0, 1.0, 0.0));
+
+  if (is_tree_2d) {
+    float d = 5.5;
+    float y = -0.3;
+    view = lookAt(vec3(0.0, y, d),       // eye
+                  vec3(0.0, y, 0.0),     // at
+                  vec3(0.0, 1.0, 0.0));  // up
+  }
+
   mat4 model = rotate(mat4(1.0), angle, vec3(0.0, 1.0, 0.0));
   model = translate(model, vec3(0, -3, 0));
   model = scale(model, vec3(zoom_scale));
