@@ -15,7 +15,7 @@
 // If this is YES, tree generation is restricted to 2D. This project overall is
 // focused on the 3d case, and the 2d case exists as a way to explore a
 // simplified version of the algorithms used.
-#define    is_tree_2d         YES
+#define    is_tree_2d         NO
 
 #define    max_tree_height    10
 

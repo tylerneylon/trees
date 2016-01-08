@@ -43,6 +43,8 @@ end
 
 local function val_near_avg(avg)
   return uniform_rand(avg * 0.85, avg * 1.15)
+  -- return uniform_rand(avg * 0.1, avg * 2.6)
+  -- return uniform_rand(avg * 0.99, avg * 1.01)
 end
 
 local function dbg_pr(...)

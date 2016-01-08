@@ -4,6 +4,16 @@ make_tree.lua
 
 A module to procedurally generate the skeleton and bark of a tree.
 
+Here is the format of a tree table:
+
+   tree[i] = {pt       = Vec3 {x, y, z},
+              kind     = 'parent', 'child', or 'leaf',
+              parent   = index of parent}
+
+Nonterminal points have 3 entries in this table - one as the child of the stick
+it ends, and two more as the parents of the outward sticks. Terminal points have
+a single entry each.
+
 --]]
 
 local make_tree = {}
@@ -30,7 +40,7 @@ local do_dbg_print = false
 local no_parent    = -1  -- This is a parent index value for the root.
 
 
--- Internal functions.
+-- Internal utility functions.
 
 -- This returns a random float in the range [min, max).
 local function uniform_rand(min, max)
@@ -47,13 +57,8 @@ local function dbg_pr(...)
   print(string.format(...))
 end
 
--- TEMP NOTES
--- Mabye the format of a tree can be:
--- tree[i] = {pt       = {x, y, z},
---            kind     = 'parent', 'child', or 'leaf',
---            parent   = index of parent}
+-- Internal skeleton-building functions.
 
--- parent = index of parent
 local function add_line(tree, from, to, parent)
   assert(tree)
   assert(from)
@@ -146,6 +151,60 @@ local function add_to_tree(args, tree)
   return tree
 end
 
+-- Internal ring-building functions.
+
+local function get_up_dir(tree_pt)
+  -- TODO
+end
+
+local function get_ring_center(tree_pt, up)
+  -- TODO
+end
+
+local function get_ring_data(tree_pt, up, center)
+  -- TODO
+end
+
+local function add_ring_to_pt(tree_pt)
+
+  if true then return false end  -- TEMP
+
+  if tree_pt.kind == 'leaf' then               -- The leaf case.
+    -- TODO Add a single point ring.
+  elseif tree_pt.parent == no_parent then      -- The trunk case.
+  else                                         -- The branch case.
+
+    -- TODO How does num_pts work?
+
+    local num_pts = 5
+
+    -- TODO Drop the asserts below once this is further along.
+
+    local up                 = get_up_dir(tree_pt)
+    assert(getmetatable(up) == Vec3)
+    local center             = get_ring_center(tree_pt, up)
+    assert(getmetatable(center) == Vec3)
+    -- `angle` is the angle in radius between outgoing rays from the center.
+    -- `v` is the vector of the first outgoing ray from the center.
+    local v, radius, angle = get_ring_data(tree_pt, up, center)
+    assert(getmetatable(v) == Vec3)
+    local R                = Mat3:rotate(angle, up)
+
+    tree_pt.ring = {}
+    for i = 1, num_pts do
+      table.insert(tree_pt.ring, center + v)
+      v = R * v  -- Rotate the outgoing ray vector v.
+    end
+  end
+end
+
+local function add_rings(tree)
+  for _, tree_pt in pairs(tree) do
+    add_ring_to_pt(tree_pt)
+  end
+end
+
+
 -- Public functions.
 
 function make_tree.make()
@@ -162,10 +221,9 @@ function make_tree.make()
   -- TEMP NOTE: The tree table can hold all the data previously held in
   --            tree_pts, tree_pt_info, and leaves. Non-top-level calls to
   --            add_to_tree can receive it as a second param.
-  return add_to_tree(tree_add_params)
-
-  -- Eventually:
-  -- add_rings()
+  local tree = add_to_tree(tree_add_params)
+  add_rings(tree)
+  return tree
 end
 
 

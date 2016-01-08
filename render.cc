@@ -427,7 +427,7 @@ static void set_ring_pt_of_top0(int child_index) {
   
 }
 
-// This does the same thing as add_ring_to_index, but it only handles the special case
+// This does the same thing as add_ring_at_index, but it only handles the special case
 // when the given index is the index of a child (hence the name child_index).
 static void add_ring_to_child(int child_index, int num_ring_corners, float scale) {
   
