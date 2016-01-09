@@ -24,5 +24,5 @@
 #define    zoom_scale         2.3
 
 #define    branch_size_factor 0.79
-#define    max_ring_corners   8
+#define    max_ring_pts       8
 

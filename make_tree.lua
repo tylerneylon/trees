@@ -6,9 +6,19 @@ A module to procedurally generate the skeleton and bark of a tree.
 
 Here is the format of a tree table:
 
-   tree[i] = {pt       = Vec3 {x, y, z},
+   tree[i] = {
+              pt       = Vec3 {x, y, z},
               kind     = 'parent', 'child', or 'leaf',
-              parent   = index of parent}
+              parent   = index of parent,
+
+              -- Parent items also have:
+              kids     = {child_item1, child_item2},
+
+              -- Child items also have:
+              up       = upward_item (upward = leafward)
+             }
+
+-- TODO NEXT Change parent from an index to the item itself.
 
 Nonterminal points have 3 entries in this table - one as the child of the stick
 it ends, and two more as the parents of the outward sticks. Terminal points have
@@ -35,6 +45,7 @@ local function check_global(name)
 end
 check_global('max_tree_height')
 check_global('branch_size_factor')
+check_global('max_ring_pts')
 
 local do_dbg_print = false
 local no_parent    = -1  -- This is a parent index value for the root.
@@ -67,16 +78,22 @@ local function add_line(tree, from, to, parent)
   assert(tree and from and to and parent)
 
   -- Add the from item.
-  local new_item = { pt = from, kind = 'child', parent = parent }
-  tree[#tree + 1] = new_item
+  local from_item = { pt = from, kind = 'child', parent = parent }
+  tree[#tree + 1] = from_item
 
   -- Ensure the parent is marked as a parent and not a leaf.
-  if parent > 0 then tree[parent].kind = 'parent' end
+  if parent > 0 then
+    tree[parent].kind = 'parent'
+    if tree[parent].kids == nil then tree[parent].kids = {} end
+    table.insert(tree[parent].kids, from_item)
+  end
 
   -- Add the to item.
   -- It starts as a leaf, and becomes a parent when a child is added to it.
-  new_item = { pt = to, kind = 'leaf' }
-  tree[#tree + 1] = new_item
+  local to_item = { pt = to, kind = 'leaf' }
+  tree[#tree + 1] = to_item
+
+  from_item.up = to_item
 end
 
 local function add_to_tree(args, tree)
@@ -153,6 +170,22 @@ end
 
 -- Internal ring-building functions.
 
+local function get_num_ring_pts(tree_pt)
+  if tree_pt.ring then return #tree_pt.ring end
+
+  if tree_pt.kind == 'leaf' then
+    return 1
+  elseif tree_pt.kind == 'child' then
+    local up_pt      = tree_pt.up
+    if up_pt.kind == 'leaf' then return math.min(3, max_ring_pts) end
+    return get_num_ring_pts(up_pt)
+  else
+    assert(tree_pt.kind == 'parent')
+    return get_num_ring_pts(tree_pt.kids[1]) +
+           get_num_ring_pts(tree_pt.kids[2]) - 2
+  end
+end
+
 local function get_up_dir(tree_pt)
   -- TODO
 end
@@ -170,28 +203,23 @@ local function add_ring_to_pt(tree_pt)
   if true then return false end  -- TEMP
 
   if tree_pt.kind == 'leaf' then               -- The leaf case.
-    -- TODO Add a single point ring.
-  elseif tree_pt.parent == no_parent then      -- The trunk case.
-  else                                         -- The branch case.
-
-    -- TODO How does num_pts work?
-
-    local num_pts = 5
-
+    tree_pt.ring = {tree_pt.pt}
+  else                                         -- The trunk or branch cases.
     -- TODO Drop the asserts below once this is further along.
-
+    local num_ring_pts       = get_num_ring_pts(tree_pt)
+                               assert(num_ring_pts <= max_ring_pts)
     local up                 = get_up_dir(tree_pt)
-    assert(getmetatable(up) == Vec3)
+                               assert(getmetatable(up) == Vec3)
     local center             = get_ring_center(tree_pt, up)
-    assert(getmetatable(center) == Vec3)
+                               assert(getmetatable(center) == Vec3)
     -- `angle` is the angle in radius between outgoing rays from the center.
     -- `v` is the vector of the first outgoing ray from the center.
     local v, radius, angle = get_ring_data(tree_pt, up, center)
-    assert(getmetatable(v) == Vec3)
+                               assert(getmetatable(v) == Vec3)
     local R                = Mat3:rotate(angle, up)
 
     tree_pt.ring = {}
-    for i = 1, num_pts do
+    for i = 1, num_ring_pts do
       table.insert(tree_pt.ring, center + v)
       v = R * v  -- Rotate the outgoing ray vector v.
     end
@@ -199,6 +227,9 @@ local function add_ring_to_pt(tree_pt)
 end
 
 local function add_rings(tree)
+  -- Although branch points are represented 3 times in the tree table, we still
+  -- want a separate ring for each one, as each branch point corresponds to 3
+  -- rings.
   for _, tree_pt in pairs(tree) do
     add_ring_to_pt(tree_pt)
   end

@@ -352,7 +352,7 @@ static void add_ring_to_parent(int parent_index) {
   int child2_corners = child2_info->ring_end - child2_info->ring_start;
   int child_ring_corners = child1_corners + child2_corners - 2;
   
-  int num_ring_corners = child_ring_corners > max_ring_corners ? max_ring_corners : child_ring_corners;
+  int num_ring_corners = child_ring_corners > max_ring_pts ? max_ring_pts : child_ring_corners;
   
   // What is the scale of this ring?
   float stick_len = pt_dist(tree_pts, parent_index, parent_index - 1);

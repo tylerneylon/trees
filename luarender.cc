@@ -62,6 +62,7 @@ static void transform_callback(GLint transform_loc) {
 static void set_lua_config_constants() {
   set_lua_global_num(max_tree_height);
   set_lua_global_num(branch_size_factor);
+  set_lua_global_num(max_ring_pts);
   set_lua_global_bool(is_tree_2d);
 }
 
