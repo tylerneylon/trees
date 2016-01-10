@@ -9,10 +9,11 @@ Here is the format of a tree table:
    tree[i] = {
               pt       = Vec3 {x, y, z},
               kind     = 'parent', 'child', or 'leaf',
-              parent   = index of parent,
+              parent   = parent_item,
 
               -- Parent items also have:
               kids     = {child_item1, child_item2},
+              down     = downward_item (downward = trunkward),
 
               -- Child items also have:
               up       = upward_item (upward = leafward)
@@ -90,6 +91,7 @@ local function add_line(tree, from, to, parent)
   tree[#tree + 1] = to_item
 
   from_item.up = to_item
+  to_item.down = from_item
 end
 
 local function add_to_tree(args, tree)
@@ -185,7 +187,11 @@ local function get_num_ring_pts(tree_pt)
 end
 
 local function get_up_dir(tree_pt)
-  -- TODO
+  if tree_pt.kind == 'child' then
+    return tree_pt.up.pt - tree_pt.pt
+  else
+    return tree_pt.pt - tree_pt.down.pt
+  end
 end
 
 local function get_ring_center(tree_pt, up)
