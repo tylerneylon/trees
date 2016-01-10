@@ -18,8 +18,6 @@ Here is the format of a tree table:
               up       = upward_item (upward = leafward)
              }
 
--- TODO NEXT Change parent from an index to the item itself.
-
 Nonterminal points have 3 entries in this table - one as the child of the stick
 it ends, and two more as the parents of the outward sticks. Terminal points have
 a single entry each.
@@ -48,7 +46,6 @@ check_global('branch_size_factor')
 check_global('max_ring_pts')
 
 local do_dbg_print = false
-local no_parent    = -1  -- This is a parent index value for the root.
 
 
 -- Internal utility functions.
@@ -74,18 +71,17 @@ local function add_line(tree, from, to, parent)
   assert(tree)
   assert(from)
   assert(to)
-  assert(parent)
-  assert(tree and from and to and parent)
+  assert(parent == nil or type(parent) == 'table')
 
   -- Add the from item.
   local from_item = { pt = from, kind = 'child', parent = parent }
   tree[#tree + 1] = from_item
 
   -- Ensure the parent is marked as a parent and not a leaf.
-  if parent > 0 then
-    tree[parent].kind = 'parent'
-    if tree[parent].kids == nil then tree[parent].kids = {} end
-    table.insert(tree[parent].kids, from_item)
+  if parent then
+    parent.kind = 'parent'
+    if parent.kids == nil then parent.kids = {} end
+    table.insert(parent.kids, from_item)
   end
 
   -- Add the to item.
@@ -97,7 +93,9 @@ local function add_line(tree, from, to, parent)
 end
 
 local function add_to_tree(args, tree)
-  assert(args.parent)
+  -- We expect to have a parent unless this is the top-level call, in which case
+  -- we expect to have no tree and no parent.
+  assert((args.parent and tree) or (tree == nil and args.parent == nil))
   assert(getmetatable(args.direction) == Vec3)
   tree = tree or {}
 
@@ -119,7 +117,7 @@ local function add_to_tree(args, tree)
 
   subtree_args.avg_len = args.avg_len * branch_size_factor
   subtree_args.origin  = args.origin + len * args.direction
-  subtree_args.parent  = #tree
+  subtree_args.parent  = tree[#tree]
 
   -- TODO Basically, I think the angle-choosing code below is not very good.
   --      I think it gives poorly distributed angles. Improve.
@@ -245,7 +243,6 @@ function make_tree.make()
     direction     = Vec3:new(0, 1, 0),
     avg_len       = 0.5,
     min_len       = 0.01,
-    parent        = no_parent,  -- This is a special index value for the root.
     max_recursion = max_tree_height
   }
 
