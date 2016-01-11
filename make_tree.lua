@@ -195,7 +195,15 @@ local function get_up_dir(tree_pt)
 end
 
 local function get_ring_center(tree_pt, up)
-  -- TODO
+  if tree_pt.kind == 'leaf' or
+    (tree_pt.kind == 'child' and tree_pt.parent == nil) then
+    return tree_pt.pt
+  end
+  if tree_pt.kind == 'child' then
+    return tree_pt.pt + get_up_dir(tree_pt) * 0.4
+  else
+    return tree_pt.pt - get_up_dir(tree_pt) * 0.05
+  end
 end
 
 local function get_ring_data(tree_pt, up, center)
