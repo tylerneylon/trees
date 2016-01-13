@@ -195,6 +195,7 @@ local function get_up_dir(tree_pt)
 end
 
 local function get_ring_center(tree_pt, up)
+  up = up or get_up_dir(tree_pt)
   if tree_pt.kind == 'leaf' or
     (tree_pt.kind == 'child' and tree_pt.parent == nil) then
     return tree_pt.pt
@@ -206,8 +207,44 @@ local function get_ring_center(tree_pt, up)
   end
 end
 
-local function get_ring_data(tree_pt, up, center)
+local function get_sibling(tree_pt)
   -- TODO
+end
+
+-- TODO Rename ring center as it is not always accurate as a name.
+
+-- TODO Update the below comments and function name.
+
+-- This returns `ray`, `angle`, where ray is the first outgoing ray from the
+-- ring's center point to one of its corners - thereby implicitly giving the
+-- radius - and `angle` is the interior angle between neighboring rays.
+-- `ray` must be chosen so that siblings share their first two points, keeping
+-- in mind that rings always go counterclockwise when viewed from above.
+
+local function get_ring_ray(tree_pt, up, num_pts, my_center)
+  local sib_pt = get_sibling(tree_pt)
+
+  -- Case 1: A sibling already has a ring.
+  if sib_pt and sib_pt.ring then
+    return sib_pt.ring[2] - sib_pt.ring_center
+  end
+
+  -- Find the ring's part_len.
+  local part_len = 0.7 * up:length() / num_pts
+
+  -- Case 2: There is a sibling, but no ring.
+  if sib_pt then
+    local sib_center = get_ring_center(sib)
+    local center_to_center = sib_center - my_center
+    local parent_up  = get_up_dir(tree_pt.parent)
+    local ring1_to_ring2_dir = parent_up:cross(center_to_center):normalize()
+    local part_mid_pt = my_center + 0.5 * center_to_center
+    local ring1 = part_mid_pt - ring1_to_ring2_dir * part_len * 0.5
+    -- TODO Is this right? I'm concerned about orthogonality.
+    return ring1 - my_center
+  end
+
+  -- TODO NEXT
 end
 
 local function add_ring_to_pt(tree_pt)
@@ -215,25 +252,28 @@ local function add_ring_to_pt(tree_pt)
   if true then return false end  -- TEMP
 
   if tree_pt.kind == 'leaf' then               -- The leaf case.
+    tree_pt.ring_center = tree_pt.pt
     tree_pt.ring = {tree_pt.pt}
   else                                         -- The trunk or branch cases.
     -- TODO Drop the asserts below once this is further along.
-    local num_ring_pts       = get_num_ring_pts(tree_pt)
-                               assert(num_ring_pts <= max_ring_pts)
-    local up                 = get_up_dir(tree_pt)
-                               assert(getmetatable(up) == Vec3)
-    local center             = get_ring_center(tree_pt, up)
-                               assert(getmetatable(center) == Vec3)
+    local num_pts = get_num_pts(tree_pt)
+                    assert(num_pts <= max_ring_pts)
     -- `angle` is the angle in radius between outgoing rays from the center.
-    -- `v` is the vector of the first outgoing ray from the center.
-    local v, radius, angle = get_ring_data(tree_pt, up, center)
-                               assert(getmetatable(v) == Vec3)
-    local R                = Mat3:rotate(angle, up)
+    local angle   = 2 * math.pi / num_pts
+    local up      = get_up_dir(tree_pt)
+                    assert(getmetatable(up) == Vec3)
+    local center  = get_ring_center(tree_pt, up)
+                    assert(getmetatable(center) == Vec3)
+    -- `ray` is the vector of the first outgoing ray from the center.
+    local ray     = get_ring_ray(tree_pt, up, num_pts, center)
+                    assert(getmetatable(v) == Vec3)
+    local R       = Mat3:rotate(angle, up)
 
+    tree_pt.ring_center = center
     tree_pt.ring = {}
-    for i = 1, num_ring_pts do
-      table.insert(tree_pt.ring, center + v)
-      v = R * v  -- Rotate the outgoing ray vector v.
+    for i = 1, num_pts do
+      table.insert(tree_pt.ring, center + ray)
+      ray = R * ray  -- Rotate the outgoing ray vector.
     end
   end
 end
