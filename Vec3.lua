@@ -65,6 +65,19 @@ function Vec3:cross(other)
                   a[1] * b[2] - a[2] * b[1])
 end
 
+-- This returns some unit vector orthogonal to self.
+-- It's deterministic and shouldn't be considered random.
+function Vec3:orthogonal_dir()
+  local other_dir
+  -- Choose other_dir not too close to a.
+  if self[1] > self[2] then
+    other_dir = Vec3:new(0, 1, 0)
+  else
+    other_dir = Vec3:new(1, 0, 0)
+  end
+  return self:cross(other_dir):normalize()
+end
+
 function Vec3:__add(other)
   local a, b = self, other
   return Vec3:new(a[1] + b[1], a[2] + b[2], a[3] + b[3])

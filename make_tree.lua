@@ -171,21 +171,28 @@ end
 -- Internal ring-building functions.
 
 local function get_num_ring_pts(tree_pt)
-  if tree_pt.ring then return #tree_pt.ring end
+  if tree_pt.ring_num_pts then return tree_pt.ring_num_pts end
 
+  local num_pts
   if tree_pt.kind == 'leaf' then
     return 1
   elseif tree_pt.kind == 'child' then
-    local up_pt      = tree_pt.up
-    if up_pt.kind == 'leaf' then return math.min(3, max_ring_pts) end
-    return get_num_ring_pts(up_pt)
+    local up_pt = tree_pt.up
+    if up_pt.kind == 'leaf' then
+      num_pts = math.min(3, max_ring_pts)
+    else
+      num_pts = get_num_ring_pts(up_pt)
+    end
   else
     assert(tree_pt.kind == 'parent')
-    return get_num_ring_pts(tree_pt.kids[1]) +
-           get_num_ring_pts(tree_pt.kids[2]) - 2
+    num_pts = get_num_ring_pts(tree_pt.kids[1]) +
+              get_num_ring_pts(tree_pt.kids[2]) - 2
   end
+  tree_pt.ring_num_pts = num_pts
+  return num_pts
 end
 
+-- TODO Rename as this is not a unit vector.
 local function get_up_dir(tree_pt)
   if tree_pt.kind == 'child' then
     return tree_pt.up.pt - tree_pt.pt
@@ -194,6 +201,7 @@ local function get_up_dir(tree_pt)
   end
 end
 
+-- TODO Delete this function.
 local function get_ring_center(tree_pt, up)
   up = up or get_up_dir(tree_pt)
   if tree_pt.kind == 'leaf' or
@@ -207,6 +215,7 @@ local function get_ring_center(tree_pt, up)
   end
 end
 
+-- TODO Delete this if not needed.
 local function get_sibling(tree_pt)
   -- TODO
 end
@@ -221,6 +230,7 @@ end
 -- `ray` must be chosen so that siblings share their first two points, keeping
 -- in mind that rings always go counterclockwise when viewed from above.
 
+-- TODO Delete this if not needed.
 local function get_ring_ray(tree_pt, up, num_pts, my_center)
   local sib_pt = get_sibling(tree_pt)
 
@@ -244,7 +254,84 @@ local function get_ring_ray(tree_pt, up, num_pts, my_center)
     return ring1 - my_center
   end
 
+  -- TODO NEXT (not anymore tho)
+end
+
+local function get_ring_radius(tree_pt, num_pts, angle)
+  if tree_pt.ring_radius then return tree_pt.ring_radius end
+
+  local radius
+  if tree_pt.kind == 'leaf' then
+    radius = 0
+  elseif tree_pt.kind == 'child' then
+    local up = get_up_dir(tree_pt)
+    local part_len = 0.7 * up:length() / num_pts
+    radius = part_len / 2 / math.sin(angle / 2)
+  else
+    assert(tree_pt.kind == 'parent')
+    local up_radius = 0.5 * get_ring_radius(tree_pt.kids[1]) +
+                      0.5 * get_ring_radius(tree_pt.kids[2])
+    local down_radius = get_ring_radius(tree_pt.down)
+    radius = 0.9 * up_radius + 0.1 * down_radius
+  end
+  tree_pt.ring_radius = radius
+  return radius
+end
+
+-- Returns `center`, `ray` for the given tree_pt.
+local function get_ring_center_and_ray(tree_pt, num_pts, angle)
+
+  if tree_pt.kind == 'leaf' then
+    return tree_pt.pt, Vec3:new(0, 0, 0)
+  end
+
+  if tree_pt.kind == 'parent' or tree_pt.parent == nil then
+    local up = get_up_dir(tree_pt)
+    local center
+    if tree_pt.parent == nil then
+      center = tree_pt.pt
+    else
+      center = tree_pt.pt - up * 0.05
+    end
+    local radius = get_ring_radius(tree_pt, num_pts)
+    local out    = up:orthogonal_dir()
+    return center, radius * out
+  end
+
+  assert(tree_pt.kind == 'child')
+
+  --[[
+
+      Mathematcal values used here:
+
+      The two outgoing branches have angle `alpha` between them.
+
+      Set the variable
+        y = distnace from tree_pt.pt to each ring center along the branches,
+      and
+        x = the distance from tree_pt.pt to the shared ring part.
+  
+      Each ring part, opposite the ring center, forms an isosceles corner. The
+      circumference side has length part_len. The radial sides have length
+        r_o = outer radius,
+      while the shortest distance from the center to ring part is called
+        r_i = inner radius.
+
+  --]]
+
+  -- Find alpha.
+  local branch_dir1 = (tree_pt.kids[1].pt - tree_pt.pt):normalize()
+  local branch_dir2 = (tree_pt.kids[2].pt - tree_pt.pt):normalize()
+  local alpha = math.acos(branch_dir1:dot(branch_dir2))
+
+  -- Find r_i, r_o, x, and y.
+  local r_i = part_len / 2 / math.tan(angle / 2)
+  local r_o = part_len / 2 / math.sin(angle / 2)
+  local x = r_i / math.sin(alpha / 2)
+  local y = r_i / math.tan(alpha / 2)
+
   -- TODO NEXT
+
 end
 
 local function add_ring_to_pt(tree_pt)
