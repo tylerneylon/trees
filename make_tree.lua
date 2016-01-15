@@ -14,6 +14,7 @@ Here is the format of a tree table:
               -- Parent items also have:
               kids     = {child_item1, child_item2},
               down     = downward_item (downward = trunkward),
+              out      = Vec3 outward direction,
 
               -- Child items also have:
               up       = upward_item (upward = leafward)
@@ -148,16 +149,17 @@ local function add_to_tree(args, tree)
   else
     arbit_dir = Vec3:new(1, 0, 0)
   end
-  local other_dir = dir:cross(arbit_dir)
+  local out_dir = dir:cross(arbit_dir):normalize()
 
   -- TEMP
   dbg_pr('turn_angle=' .. turn_angle)
   dbg_pr('args.direction=' .. args.direction:as_str())
 
-  local turn = Mat3:rotate(turn_angle, args.direction)
+  out_dir = Mat3:rotate(turn_angle, args.direction) * out_dir
 
-  local dir1 = turn * Mat3:rotate( split_angle * w1, other_dir) * args.direction
-  local dir2 = turn * Mat3:rotate(-split_angle * w2, other_dir) * args.direction
+  local dir1 = Mat3:rotate( split_angle * w1, out_dir) * args.direction
+  local dir2 = Mat3:rotate(-split_angle * w2, out_dir) * args.direction
+  tree[#tree].out = out_dir
 
   subtree_args.direction = dir1
   add_to_tree(subtree_args, tree)
@@ -285,6 +287,8 @@ local function get_ring_center_and_ray(tree_pt, num_pts, angle)
     return tree_pt.pt, Vec3:new(0, 0, 0)
   end
 
+  local radius = get_ring_radius(tree_pt, num_pts)
+
   if tree_pt.kind == 'parent' or tree_pt.parent == nil then
     local up = get_up_dir(tree_pt)
     local center
@@ -293,7 +297,6 @@ local function get_ring_center_and_ray(tree_pt, num_pts, angle)
     else
       center = tree_pt.pt - up * 0.05
     end
-    local radius = get_ring_radius(tree_pt, num_pts)
     local out    = up:orthogonal_dir()
     return center, radius * out
   end
@@ -320,18 +323,35 @@ local function get_ring_center_and_ray(tree_pt, num_pts, angle)
   --]]
 
   -- Find alpha.
-  local branch_dir1 = (tree_pt.kids[1].pt - tree_pt.pt):normalize()
-  local branch_dir2 = (tree_pt.kids[2].pt - tree_pt.pt):normalize()
-  local alpha = math.acos(branch_dir1:dot(branch_dir2))
+  local parent      = tree_pt.parent
+  local sibling     = get_sibling(tree_pt)
+  local to_self_dir = (tree_pt.pt - parent.pt):normalize()
+  local to_sib_dir  = (sibling.pt - parent.pt):normalize()
+  local alpha       = math.acos(to_self_dir:dot(to_sib_dir))
 
-  -- Find r_i, r_o, x, and y.
-  local r_i = part_len / 2 / math.tan(angle / 2)
-  local r_o = part_len / 2 / math.sin(angle / 2)
-  local x = r_i / math.sin(alpha / 2)
-  local y = r_i / math.tan(alpha / 2)
+  -- Find r_i, r_o, part_len, x, and y.
+  local r_o      = radius
+  local part_len = r_o * 2 * math.sin(angle / 2)
+  local r_i      = part_len / 2 / math.tan(angle / 2)
+  local x        = r_i / math.sin(alpha / 2)
+  local y        = r_i / math.tan(alpha / 2)
+  -- r_i, r_o, and (part_len / 2) are the side lengths of a right triangle.
+  assert(math.abs(r_o ^ 2 - (part_len / 2) ^ 2 - r_i ^ 2) < 0.0001)
 
-  -- TODO NEXT
+  -- Find center and mid_pt. `mid_pt` is on the ring between ring1 and ring2.
+  local center     = parent.pt + y * to_self_dir
+  local to_mid_dir = (branch_dir1 + branch_dir2):normalize()
+  local mid_pt     = parent.pt + x * to_mid_dir
 
+  -- Find ring1.
+  local ring1
+  if parent.kids[1] == tree_pt then
+    ring1 = mid_pt + parent.out * (part_len / 2)
+  else
+    ring1 = mid_pt - parent.out * (part_len / 2)
+  end
+
+  return center, ring1 - center
 end
 
 local function add_ring_to_pt(tree_pt)
