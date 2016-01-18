@@ -9,10 +9,12 @@ This code is meant to be called form make_tree.lua.
 
 local rings = {}
 
+local dbg = require 'dbg'
+
 
 -- Internal functions.
 
-local function get_num_ring_pts(tree_pt)
+local function get_num_pts(tree_pt)
   if tree_pt.ring_num_pts then return tree_pt.ring_num_pts end
 
   local num_pts
@@ -21,23 +23,44 @@ local function get_num_ring_pts(tree_pt)
   elseif tree_pt.kind == 'child' then
     local up_pt = tree_pt.up
     if up_pt.kind == 'leaf' then
-      num_pts = math.min(3, max_ring_pts)
+      num_pts = 3
     else
-      num_pts = get_num_ring_pts(up_pt)
+      num_pts = get_num_pts(up_pt)
     end
   else
     assert(tree_pt.kind == 'parent')
-    num_pts = get_num_ring_pts(tree_pt.kids[1]) +
-              get_num_ring_pts(tree_pt.kids[2]) - 2
+    num_pts = get_num_pts(tree_pt.kids[1]) +
+              get_num_pts(tree_pt.kids[2]) - 2
   end
+
+  num_pts = math.min(num_pts, max_ring_pts)
   tree_pt.ring_num_pts = num_pts
   return num_pts
 end
 
 local function get_up_vec(tree_pt)
   if tree_pt.kind == 'child' then
+    assert(tree_pt.up and tree_pt.up.kind)
+
+    -- TODO NEXT This is happening. Write an integrity check that can see this
+    --           issue and then isolate when in the code things are going wrong.
+    if getmetatable(tree_pt.up.pt) ~= Vec3 then
+      print('tree_pt.up:')
+      dbg.pr_val(tree_pt.up)
+      os.exit(1)
+    end
+    
+    assert(getmetatable(tree_pt.up.pt) == Vec3)
+    assert(getmetatable(tree_pt.pt) == Vec3)
+    local a = tree_pt.up.pt - tree_pt.pt
+    assert(getmetatable(a) == Vec3)
     return tree_pt.up.pt - tree_pt.pt
   else
+    assert(tree_pt.down and tree_pt.down.kind)
+    assert(getmetatable(tree_pt.pt) == Vec3)
+    assert(getmetatable(tree_pt.down.pt) == Vec3)
+    local a = tree_pt.pt - tree_pt.down.pt
+    assert(getmetatable(a) == Vec3)
     return tree_pt.pt - tree_pt.down.pt
   end
 end
@@ -149,7 +172,7 @@ end
 
 local function add_ring_to_pt(tree_pt)
 
-  if true then return false end  -- TEMP TODO drop this
+  -- if true then return false end  -- TEMP TODO drop this
 
   if tree_pt.kind == 'leaf' then               -- The leaf case.
     tree_pt.ring_center = tree_pt.pt
@@ -189,6 +212,8 @@ function rings.add_rings(tree)
   end
 end
 
+-- TEMP
+print('max_ring_pts = ' .. max_ring_pts)
 
 return rings
 

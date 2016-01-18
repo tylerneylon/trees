@@ -73,8 +73,8 @@ end
 
 local function add_line(tree, from, to, parent)
   assert(tree)
-  assert(from)
-  assert(to)
+  assert(from and getmetatable(from) == Vec3)
+  assert(to   and getmetatable(to)   == Vec3)
   assert(parent == nil or type(parent) == 'table')
 
   -- Add the from item.
