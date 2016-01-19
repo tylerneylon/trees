@@ -72,12 +72,14 @@ end
 -- Internal skeleton-building functions.
 
 local function add_line(tree, from, to, parent)
+
   assert(tree)
   assert(from and getmetatable(from) == Vec3)
   assert(to   and getmetatable(to)   == Vec3)
   assert(parent == nil or type(parent) == 'table')
 
   -- Add the from item.
+  assert(getmetatable(from) == Vec3)
   local from_item = { pt = from, kind = 'child', parent = parent }
   tree[#tree + 1] = from_item
 

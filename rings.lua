@@ -5,11 +5,39 @@ rings.lua
 A module to add rings to a tree skeleton.
 This code is meant to be called form make_tree.lua.
 
+TODO NEXT This is either slow or loops. Figure out which and fix it.
+
 --]]
 
 local rings = {}
 
-local dbg = require 'dbg'
+local dbg  = require 'dbg'
+
+local Mat3 = require 'Mat3'
+local Vec3 = require 'Vec3'
+
+
+-- Debug functions.
+
+local function assertup(cond, msg)
+  if not cond then
+    error(msg, 3)  -- 3 = level; the caller reports the error from the callee.
+  end
+end
+
+local function check_tree_integrity(tree)
+  local fmt = 'Expected %s to be a Vec3.'
+  for _, tree_pt in pairs(tree) do
+    assertup(getmetatable(tree_pt.pt) == Vec3, fmt:format('tree_pt.pt'))
+    if tree_pt.down then
+      assertup(getmetatable(tree_pt.down.pt) == Vec3,
+               fmt:format('tree_pt.down.pt'))
+    elseif tree_pt.up then
+      assertup(getmetatable(tree_pt.up.pt) == Vec3,
+               fmt:format('tree_pt.up.pt'))
+    end
+  end
+end
 
 
 -- Internal functions.
@@ -78,6 +106,11 @@ end
 local function get_ring_radius(tree_pt, num_pts, angle)
   if tree_pt.ring_radius then return tree_pt.ring_radius end
 
+  if num_pts == nil then
+    num_pts = get_num_pts(tree_pt)
+    angle   = 2 * math.pi / num_pts
+  end
+
   local radius
   if tree_pt.kind == 'leaf' then
     radius = 0
@@ -103,7 +136,7 @@ local function get_ring_center_and_ray(tree_pt, num_pts, angle)
     return tree_pt.pt, Vec3:new(0, 0, 0)
   end
 
-  local radius = get_ring_radius(tree_pt, num_pts)
+  local radius = get_ring_radius(tree_pt, num_pts, angle)
 
   if tree_pt.kind == 'parent' or tree_pt.parent == nil then
     local up = get_up_vec(tree_pt)
@@ -156,7 +189,7 @@ local function get_ring_center_and_ray(tree_pt, num_pts, angle)
 
   -- Find center and mid_pt. `mid_pt` is on the ring between ring1 and ring2.
   local center     = parent.pt + y * to_self_dir
-  local to_mid_dir = (branch_dir1 + branch_dir2):normalize()
+  local to_mid_dir = (to_self_dir + to_sib_dir):normalize()
   local mid_pt     = parent.pt + x * to_mid_dir
 
   -- Find ring1.
@@ -188,7 +221,7 @@ local function add_ring_to_pt(tree_pt)
     -- `ray` is the vector of the first outgoing ray from the center.
     local center, ray = get_ring_center_and_ray(tree_pt, num_pts, angle)
                         assert(getmetatable(center) == Vec3)
-                        assert(getmetatable(v) == Vec3)
+                        assert(getmetatable(ray) == Vec3)
     local R           = Mat3:rotate(angle, up)
 
     tree_pt.ring_center = center
@@ -207,10 +240,15 @@ function rings.add_rings(tree)
   -- Although branch points are represented 3 times in the tree table, we still
   -- want a separate ring for each one, as each branch point corresponds to 3
   -- rings.
+  check_tree_integrity(tree)
   for _, tree_pt in pairs(tree) do
     add_ring_to_pt(tree_pt)
+    check_tree_integrity(tree)
   end
 end
+
+-- TEMP
+rings.check_tree_integrity = check_tree_integrity
 
 -- TEMP
 print('max_ring_pts = ' .. max_ring_pts)
