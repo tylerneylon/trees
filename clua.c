@@ -12,6 +12,8 @@
 
 // System includes.
 #include <errno.h>
+#include <mach/mach.h>
+#include <mach/mach_time.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/param.h>
@@ -177,6 +179,22 @@ static const char *clua__lua_dir() {
 }
 
 
+// Lua-public functions.
+
+static int timestamp(lua_State *L) {
+  static int did_initialize = FALSE;
+  static mach_timebase_info_data_t timebase_info;
+  if (!did_initialize) {
+    mach_timebase_info(&timebase_info);
+    did_initialize = TRUE;
+  }
+  uint64_t abs_time = mach_absolute_time();
+  lua_pushnumber(L,
+      (double)abs_time * timebase_info.numer / timebase_info.denom / 1e9f);
+  return 1;  // 1 = number of return values
+}
+
+
 // C-public functions.
 
 lua_State *clua__new_state() {
@@ -197,6 +215,10 @@ lua_State *clua__new_state() {
   lua_setfield   (L, -2, "path");
   // Stack = [package]
   lua_pop        (L,  1);
+  // Stack = []
+  lua_pushcfunction(L, timestamp);
+  // Stack = [timestamp]
+  lua_setglobal(L, "timestamp");
   // Stack = []
   
   return L;

@@ -19,6 +19,19 @@ local Vec3 = require 'Vec3'
 
 -- Debug functions.
 
+local last_timestamp = false
+
+local function checkpoint(name)
+  local now = timestamp()
+  if not last_timestamp then
+    print('from checkpoint ' .. name)
+  else
+    local interval = now - last_timestamp
+    print(('to checkpoint %s: %f'):format(name, interval))
+  end
+  last_timestamp = now
+end
+
 local function assertup(cond, msg)
   if not cond then
     error(msg, 3)  -- 3 = level; the caller reports the error from the callee.
@@ -204,9 +217,6 @@ local function get_ring_center_and_ray(tree_pt, num_pts, angle)
 end
 
 local function add_ring_to_pt(tree_pt)
-
-  -- if true then return false end  -- TEMP TODO drop this
-
   if tree_pt.kind == 'leaf' then               -- The leaf case.
     tree_pt.ring_center = tree_pt.pt
     tree_pt.ring = {tree_pt.pt}
@@ -240,10 +250,8 @@ function rings.add_rings(tree)
   -- Although branch points are represented 3 times in the tree table, we still
   -- want a separate ring for each one, as each branch point corresponds to 3
   -- rings.
-  check_tree_integrity(tree)
   for _, tree_pt in pairs(tree) do
     add_ring_to_pt(tree_pt)
-    check_tree_integrity(tree)
   end
 end
 
@@ -252,6 +260,7 @@ rings.check_tree_integrity = check_tree_integrity
 
 -- TEMP
 print('max_ring_pts = ' .. max_ring_pts)
+
 
 return rings
 
