@@ -32,10 +32,19 @@ local tree = false
 local function setup_lines()
   lines.set_scale(1.0)
 
+  -- Draw trunk and branch lines.
   for i = 1, #tree, 2 do
     assert(type(tree[i].pt) == 'table' and #tree[i].pt == 3)
     assert(type(tree[i + 1].pt) == 'table' and #tree[i + 1].pt == 3)
     lines.add(tree[i].pt, tree[i + 1].pt)
+  end
+
+  -- Draw the rings.
+  for _, tree_pt in pairs(tree) do
+    local r = tree_pt.ring
+    for i = 1, #r do
+      lines.add(r[i], r[i % #r + 1])
+    end
   end
 end
 
