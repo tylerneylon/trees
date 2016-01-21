@@ -122,6 +122,8 @@ end
 -- around vector dir. This rotates things counterclockwise when the viewer is
 -- looking straight down dir; that is, in the opposite direction of dir.
 function Mat3:rotate(angle, dir)
+  assert(angle == angle)  -- Check for nan.
+  assert(not dir:has_nan())
   -- Plan: move dir to z; rotate around z, move z back to dir by inverse.
 
   -- 1. Move dir to z.

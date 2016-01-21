@@ -111,4 +111,11 @@ function Vec3:as_str()
   return string.format('(%g, %g, %g)', self[1], self[2], self[3])
 end
 
+function Vec3:has_nan()
+  for i = 1, 3 do
+    if self[i] ~= self[i] then return true end
+  end
+  return false
+end
+
 return Vec3
