@@ -26,3 +26,6 @@
 #define    branch_size_factor 0.79
 #define    max_ring_pts       8
 
+#define    do_draw_rings      YES
+
+// TODO Make do_draw_rings effective in the C code.

@@ -64,6 +64,7 @@ static void set_lua_config_constants() {
   set_lua_global_num(branch_size_factor);
   set_lua_global_num(max_ring_pts);
   set_lua_global_bool(is_tree_2d);
+  set_lua_global_bool(do_draw_rings);
 }
 
 
