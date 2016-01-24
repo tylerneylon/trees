@@ -140,6 +140,33 @@ local function get_ring_radius(tree_pt, num_pts, angle)
   return radius
 end
 
+--[[
+
+TEMP NOTES TODO Shorten and clean these up as a smaller version to leave in the
+                code.
+
+I realized that the current code pretends that both upward branches of a fork
+will have the same radius, which is not true. So I did some math and came up
+with a nice formulate for what I call r1p (r_1') and r2p that represent the
+lengths up the branches whose inner radii are r1 and r2, respectively. The
+values are:
+
+  r1p = sqrt( b^2 / sin^2(alpha) - r1^2 )
+
+and similarly for r2p (using r2 instead of r2); the value of b^2 is given by:
+
+  b^2 = r1^2 + r2^2 + 2 * r1 * r2 * cos(alpha),
+
+basically using the law of cosines.
+
+The distance up to the ring intersection midpoint appears to be b / sin(alpha).
+
+I am still investigating the most elegant way to justify this, although I have
+brute force approach using the law of cosines to find b followed by several uses
+of the law of sines.
+
+--]]
+
 -- Returns `center`, `ray` for the given tree_pt.
 local function get_ring_center_and_ray(tree_pt, num_pts, angle)
 
