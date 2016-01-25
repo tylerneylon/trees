@@ -115,7 +115,9 @@ local function get_sibling(tree_pt)
 end
 
 local function get_ring_radius(tree_pt, num_pts, angle)
-  if tree_pt.ring_radius then return tree_pt.ring_radius end
+  if tree_pt.ring_radius then
+    return tree_pt.ring_radius, tree_pt.ring_num_pts, tree_pt.ring_angle
+  end
 
   if num_pts == nil then
     num_pts = get_num_pts(tree_pt)
@@ -136,8 +138,10 @@ local function get_ring_radius(tree_pt, num_pts, angle)
     local down_radius = get_ring_radius(tree_pt.down)
     radius = 0.9 * up_radius + 0.1 * down_radius
   end
-  tree_pt.ring_radius = radius
-  return radius
+  tree_pt.ring_radius  = radius
+  tree_pt.ring_num_pts = num_pts
+  tree_pt.ring_angle   = angle
+  return radius, num_pts, angle
 end
 
 --[[
@@ -211,10 +215,56 @@ local function get_ring_center_and_ray(tree_pt, num_pts, angle)
 
   -- Find alpha.
   local sibling     = get_sibling(tree_pt)
+  local sib_radius  = get_ring_radius(sibling)
   local to_self_dir = get_up_vec(tree_pt):normalize()
   local to_sib_dir  = get_up_vec(sibling):normalize()
   local alpha       = math.acos(to_self_dir:dot(to_sib_dir))
   assert(alpha == alpha)  -- Check for nan.
+
+  -- Find self_inner_r, sib_inner_r; these are inner radii.
+  local part_len     = radius * 2 * math.sin(angle / 2)
+  local self_inner_r = part_len / 2 / math.tan(angle / 2)
+  local sib_radius, sib_num_pts, sib_angle = get_ring_radius(sibling)
+  local sib_part_len = sib_radius * 2 * math.sin(sib_angle / 2)
+  local sib_inner_r  = sib_part_len / 2 / math.tan(sib_angle / 2)
+
+  -- Find to_self_r, to_sib_r, TODO
+  local r1, r2       = self_inner_r, sib_inner_r
+  local b_squared    = r1^2 + r2^2 + 2 * r1 * r2 * math.cos(alpha)
+  local sin_alpha_sq = math.sin(alpha)^2
+  local to_self_r    = math.sqrt(b_squared / sin_alpha_sq - r1^2)
+  local to_sib_r     = math.sqrt(b_squared / sin_alpha_sq - r2^2)
+
+  -- TODO Drop any unused values.
+
+  -- Find center = our ring's center and mid_pt, which is on both rings midway
+  -- between ring1 and ring2 in each.
+  local center        = tree_pt.pt + to_self_r * to_self_dir
+  --local to_mid_pt_dir = tree_pt.parent.out:cross(to_self_dir)
+  local to_mid_pt_dir = to_self_dir:cross(tree_pt.parent.out)
+  local mid_pt        = center + self_inner_r * to_mid_pt_dir
+
+  -- TEMP cleanup
+  assert(not center:has_nan())
+  assert(not mid_pt:has_nan())
+
+  -- TEMP test
+  local sib_center = sibling.pt + to_sib_r * to_sib_dir
+  local from_sib_to_mid_pt_dir = tree_pt.parent.out:cross(to_sib_dir)
+  -- local from_sib_to_mid_pt_dir = to_sib_dir:cross(tree_pt.parent.out)
+  local sib_mid_pt = sib_center + sib_inner_r * from_sib_to_mid_pt_dir
+
+  -- TODO NEXT Fix this! It looks like the corresponding midpoints are *often*
+  --           identical, which is good, but not always. Fix the not always bit.
+
+  print('mid_pt=' .. mid_pt:as_str())
+  print('sib_mid_pt=' .. sib_mid_pt:as_str())
+
+  for i = 1, 3 do
+    assert(math.abs(sib_mid_pt[i] - mid_pt[i]) < 0.001)
+  end
+
+  --[[
 
   -- Find r_i, r_o, part_len, x, and y.
   local r_o      = radius
@@ -222,7 +272,8 @@ local function get_ring_center_and_ray(tree_pt, num_pts, angle)
   local r_i      = part_len / 2 / math.tan(angle / 2)
   local x        = r_i / math.sin(alpha / 2)
   local y        = r_i / math.tan(alpha / 2)
-  assert(x == x and y == y and r_i == r_i and part_len == part_len and r_o == r_o)  -- TEMP TODO fix line len
+  assert(x == x and y == y and r_i == r_i and
+         part_len == part_len and r_o == r_o)
   -- r_i, r_o, and (part_len / 2) are the side lengths of a right triangle.
   assert(math.abs(r_o ^ 2 - (part_len / 2) ^ 2 - r_i ^ 2) < 0.0001)
 
@@ -234,6 +285,8 @@ local function get_ring_center_and_ray(tree_pt, num_pts, angle)
   assert(not center:has_nan())
   assert(not to_mid_dir:has_nan())
   assert(not mid_pt:has_nan())
+
+  --]]
 
   -- Find ring1.
   local ring1

@@ -9,6 +9,7 @@ Here is the format of a tree table:
    tree[i] = {
               pt       = Vec3 {x, y, z},
               kind     = 'parent', 'child', or 'leaf',
+              TODO Do all items have a parent key?
               parent   = parent_item,
 
               -- Parent items also have:
