@@ -171,6 +171,8 @@ of the law of sines.
 
 --]]
 
+-- TODO NEXT Modify ring1 and ring2 so that they match across sibling rings.
+
 -- Returns `center`, `ray` for the given tree_pt.
 local function get_ring_center_and_ray(tree_pt, num_pts, angle)
 
@@ -183,7 +185,7 @@ local function get_ring_center_and_ray(tree_pt, num_pts, angle)
   if tree_pt.kind == 'parent' or tree_pt.parent == nil then
     local up = get_up_vec(tree_pt)
     local center
-    if tree_pt.parent == nil then
+    if tree_pt.parent == nil then  -- The trunk.
       center = tree_pt.pt
     else
       center = tree_pt.pt - up * 0.05
@@ -193,6 +195,8 @@ local function get_ring_center_and_ray(tree_pt, num_pts, angle)
   end
 
   --[[
+
+      TODO Update these comments.
 
       Mathematcal values used here:
 
@@ -240,8 +244,13 @@ local function get_ring_center_and_ray(tree_pt, num_pts, angle)
   -- Find center = our ring's center and mid_pt, which is on both rings midway
   -- between ring1 and ring2 in each.
   local center        = tree_pt.pt + to_self_r * to_self_dir
-  --local to_mid_pt_dir = tree_pt.parent.out:cross(to_self_dir)
-  local to_mid_pt_dir = to_self_dir:cross(tree_pt.parent.out)
+  local out
+  if tree_pt.parent.kids[1] == tree_pt then
+    out = tree_pt.parent.out
+  else
+    out = -1 * tree_pt.parent.out
+  end
+  local to_mid_pt_dir = to_self_dir:cross(out)
   local mid_pt        = center + self_inner_r * to_mid_pt_dir
 
   -- TEMP cleanup
@@ -250,43 +259,12 @@ local function get_ring_center_and_ray(tree_pt, num_pts, angle)
 
   -- TEMP test
   local sib_center = sibling.pt + to_sib_r * to_sib_dir
-  local from_sib_to_mid_pt_dir = tree_pt.parent.out:cross(to_sib_dir)
-  -- local from_sib_to_mid_pt_dir = to_sib_dir:cross(tree_pt.parent.out)
+  local from_sib_to_mid_pt_dir = out:cross(to_sib_dir)
   local sib_mid_pt = sib_center + sib_inner_r * from_sib_to_mid_pt_dir
-
-  -- TODO NEXT Fix this! It looks like the corresponding midpoints are *often*
-  --           identical, which is good, but not always. Fix the not always bit.
-
-  print('mid_pt=' .. mid_pt:as_str())
-  print('sib_mid_pt=' .. sib_mid_pt:as_str())
 
   for i = 1, 3 do
     assert(math.abs(sib_mid_pt[i] - mid_pt[i]) < 0.001)
   end
-
-  --[[
-
-  -- Find r_i, r_o, part_len, x, and y.
-  local r_o      = radius
-  local part_len = r_o * 2 * math.sin(angle / 2)
-  local r_i      = part_len / 2 / math.tan(angle / 2)
-  local x        = r_i / math.sin(alpha / 2)
-  local y        = r_i / math.tan(alpha / 2)
-  assert(x == x and y == y and r_i == r_i and
-         part_len == part_len and r_o == r_o)
-  -- r_i, r_o, and (part_len / 2) are the side lengths of a right triangle.
-  assert(math.abs(r_o ^ 2 - (part_len / 2) ^ 2 - r_i ^ 2) < 0.0001)
-
-  -- Find center and mid_pt. `mid_pt` is on the ring between ring1 and ring2.
-  local center     = tree_pt.pt + y * to_self_dir
-  local to_mid_dir = (to_self_dir + to_sib_dir):normalize()
-  local mid_pt     = tree_pt.pt + x * to_mid_dir
-
-  assert(not center:has_nan())
-  assert(not to_mid_dir:has_nan())
-  assert(not mid_pt:has_nan())
-
-  --]]
 
   -- Find ring1.
   local ring1
