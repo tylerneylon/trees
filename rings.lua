@@ -171,13 +171,12 @@ of the law of sines.
 
 --]]
 
--- TODO NEXT Modify ring1 and ring2 so that they match across sibling rings.
-
--- Returns `center`, `ray` for the given tree_pt.
+-- Returns `center`, `ray`, and a possibly adjusted `angle` for the tree_pt.
 local function get_ring_center_and_ray(tree_pt, num_pts, angle)
+  assert(tree_pt and num_pts and angle)
 
   if tree_pt.kind == 'leaf' then
-    return tree_pt.pt, Vec3:new(0, 0, 0)
+    return tree_pt.pt, Vec3:new(0, 0, 0), angle
   end
 
   local radius = get_ring_radius(tree_pt, num_pts, angle)
@@ -191,7 +190,7 @@ local function get_ring_center_and_ray(tree_pt, num_pts, angle)
       center = tree_pt.pt - up * 0.05
     end
     local out    = up:orthogonal_dir()
-    return center, radius * out
+    return center, radius * out, angle
   end
 
   --[[
@@ -243,13 +242,11 @@ local function get_ring_center_and_ray(tree_pt, num_pts, angle)
 
   -- Find center = our ring's center and mid_pt, which is on both rings midway
   -- between ring1 and ring2 in each.
-  local center        = tree_pt.pt + to_self_r * to_self_dir
-  local out
-  if tree_pt.parent.kids[1] == tree_pt then
-    out = tree_pt.parent.out
-  else
-    out = -1 * tree_pt.parent.out
+  local out = tree_pt.parent.out
+  if tree_pt.parent.kids[2] == tree_pt then
+    out = -1 * out
   end
+  local center        = tree_pt.pt + to_self_r * to_self_dir
   local to_mid_pt_dir = to_self_dir:cross(out)
   local mid_pt        = center + self_inner_r * to_mid_pt_dir
 
@@ -267,17 +264,20 @@ local function get_ring_center_and_ray(tree_pt, num_pts, angle)
   end
 
   -- Find ring1.
-  local ring1
-  local parent = tree_pt.parent
-  if parent.kids[1] == tree_pt then
-    ring1 = mid_pt + parent.out * (part_len / 2)
-  else
-    ring1 = mid_pt - parent.out * (part_len / 2)
-  end
+  local ring1, ring2
+  local avg_part_len   = (part_len + sib_part_len) / 2
+  local parent         = tree_pt.parent
+  local big_angle      = 2 * math.atan2(avg_part_len / 2, self_inner_r)
+  local adjusted_angle = (2 * math.pi - big_angle) / (num_pts - 1)
+
+  ring1 = mid_pt + out * (avg_part_len / 2)
+  ring2 = mid_pt - out * (avg_part_len / 2)
+  tree_pt.ring = {ring1}
 
   assert(not ring1:has_nan())
+  assert(not ring2:has_nan())
 
-  return center, ring1 - center
+  return center, ring2 - center, adjusted_angle
 end
 
 local function add_ring_to_pt(tree_pt)
@@ -293,17 +293,18 @@ local function add_ring_to_pt(tree_pt)
     local up          = get_up_vec(tree_pt)
                         assert(getmetatable(up) == Vec3)
     -- `ray` is the vector of the first outgoing ray from the center.
-    local center, ray = get_ring_center_and_ray(tree_pt, num_pts, angle)
-                        assert(getmetatable(center) == Vec3)
-                        assert(getmetatable(ray) == Vec3)
-    local R           = Mat3:rotate(angle, up)
+    local center, ray, angle = get_ring_center_and_ray(tree_pt, num_pts, angle)
+                               assert(getmetatable(center) == Vec3)
+                               assert(getmetatable(ray) == Vec3)
+    local R                  = Mat3:rotate(angle, up)
 
     tree_pt.ring_center = center
     tree_pt.ring = {}
-    for i = 1, num_pts do
+    while #tree_pt.ring < num_pts do
       table.insert(tree_pt.ring, center + ray)
       ray = R * ray  -- Rotate the outgoing ray vector.
     end
+    assert(#tree_pt.ring == num_pts)  -- TEMP
   end
 end
 
