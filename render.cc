@@ -19,6 +19,12 @@ using namespace glm;
 #include <stdio.h>
 
 
+#ifndef YES
+#define YES 1
+#define  NO 0
+#endif
+
+
 // Internal types and globals.
 
 typedef enum {
@@ -57,7 +63,6 @@ static Array leaves = NULL;
 static Array ring_pts = NULL;
 
 static bool do_draw_skeleton    = false;
-static bool do_draw_rings       = false;
 static bool do_draw_stick_lines = false;
 static bool do_draw_stick_bark  = true;
 static bool do_draw_joint_bark  = true;
