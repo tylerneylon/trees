@@ -61,7 +61,7 @@ end
 
 function Mat3:__mul(m)
   local m_mt = getmetatable(m)
-  assert(m_mt == Vec3 or m_mt == Mat3)
+  assert(m_mt == Vec3 or m_mt == Mat3, 'A Mat3 must multiply with Vec3 or Mat3')
 
   -- Internally, this is always matrix multiplication.
   -- When m is a Vec3, we convert it to a matrix and then convert the output to
@@ -95,8 +95,7 @@ end
 
 -- The return value of this is a unitary matrix M such that M * dir = (0, 0, 1).
 function Mat3:rotate_to_z(dir)
-  -- TODO Improve the error message on this assert (and any similar ones).
-  assert(getmetatable(dir) == Vec3)
+  assert(getmetatable(dir) == Vec3, 'dir expected to be a Vec3')
   local v3 = Vec3:new(dir):normalize()
 
   -- Find vectors v1 and v2 so that {v1, v2, v3} are orthonormal and satisfy the
