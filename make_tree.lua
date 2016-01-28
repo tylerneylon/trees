@@ -9,8 +9,6 @@ Here is the format of a tree table:
    tree[i] = {
               pt       = Vec3 {x, y, z},
               kind     = 'parent', 'child', or 'leaf',
-              TODO Do all items have a parent key?
-              parent   = parent_item,
 
               -- Parent items also have:
               kids     = {child_item1, child_item2},
@@ -18,12 +16,16 @@ Here is the format of a tree table:
               out      = Vec3 outward direction,
 
               -- Child items also have:
+              parent   = parent_item,
               up       = upward_item (upward = leafward)
              }
 
 Nonterminal points have 3 entries in this table - one as the child of the stick
 it ends, and two more as the parents of the outward sticks. Terminal points have
-a single entry each.
+a single entry each; this means the trunk point and all leaf points. The trunk
+point has kind == 'child', which is consistent with it being the bottom point of
+a stick in the tree skeleton. All top points are 'leaf' or 'parent' points and
+all bottom points are 'child' points.
 
 --]]
 
@@ -127,24 +129,19 @@ local function add_to_tree(args, tree)
   subtree_args.origin  = args.origin + len * args.direction
   subtree_args.parent  = tree[#tree]
 
-  -- TODO Basically, I think the angle-choosing code below is not very good.
-  --      I think it gives poorly distributed angles. Improve.
-
-  -- PLAN Try two approaches:
-  --  1.  For each branch point, track a unit direction vector orthogonal to the
-  --      plane of the branching. At the child branch points, choose a random
-  --      new orthogonal direction that averages around 90 degrees off of the
-  --      parent's orthogonal direction.
-  --  2.  Pick the orth dir to be truly random, but discard things close enough
-  --      to the current branch dir.
+  -- It's not obvious that the code below does a good job choosing random branch
+  -- directions. The seemingly weak point is that arbit_dir and the first value
+  -- of out_dir are not truly random. However, once out_dir is rotated by
+  -- turn_angle, it is at least pseudorandom.
   --
-  --  Here's a good way to choose a random unit vector in R³:
-  --  http://math.stackexchange.com/a/44691/10785
+  -- In investigating alternative designs here, I came across this method of
+  -- choosing a random unit vector in R³, which may be useful in the future:
+  --
+  --     http://math.stackexchange.com/a/44691/10785
 
   local split_angle = val_near_avg(0.55)  -- This is in radians.
   local turn_angle  = uniform_rand(0.0, 2 * math.pi)
 
-  -- TODO Improve this part of the process. arbit_dir is too deterministic!
   -- Find other_dir orthogonal to direction.
   local dir = args.direction
   local arbit_dir
