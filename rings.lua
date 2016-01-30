@@ -78,30 +78,21 @@ local function get_num_pts(tree_pt)
 end
 
 local function get_up_vec(tree_pt)
+  assert(getmetatable(tree_pt.pt) == Vec3)
+
+  local up
   if tree_pt.kind == 'child' then
     assert(tree_pt.up and tree_pt.up.kind)
-
-    -- TODO NEXT This is happening. Write an integrity check that can see this
-    --           issue and then isolate when in the code things are going wrong.
-    if getmetatable(tree_pt.up.pt) ~= Vec3 then
-      print('tree_pt.up:')
-      dbg.pr_val(tree_pt.up)
-      os.exit(1)
-    end
-    
     assert(getmetatable(tree_pt.up.pt) == Vec3)
-    assert(getmetatable(tree_pt.pt) == Vec3)
-    local a = tree_pt.up.pt - tree_pt.pt
-    assert(getmetatable(a) == Vec3)
-    return tree_pt.up.pt - tree_pt.pt
+    up = tree_pt.up.pt - tree_pt.pt
   else
     assert(tree_pt.down and tree_pt.down.kind)
     assert(getmetatable(tree_pt.pt) == Vec3)
     assert(getmetatable(tree_pt.down.pt) == Vec3)
-    local a = tree_pt.pt - tree_pt.down.pt
-    assert(getmetatable(a) == Vec3)
-    return tree_pt.pt - tree_pt.down.pt
+    up = tree_pt.pt - tree_pt.down.pt
   end
+  assert(getmetatable(up) == Vec3)
+  return up
 end
 
 local function get_sibling(tree_pt)
@@ -144,36 +135,22 @@ local function get_ring_radius(tree_pt, num_pts, angle)
   return radius, num_pts, angle
 end
 
---[[
-
-TEMP NOTES TODO Shorten and clean these up as a smaller version to leave in the
-                code.
-
-I realized that the current code pretends that both upward branches of a fork
-will have the same radius, which is not true. So I did some math and came up
-with a nice formulate for what I call r1p (r_1') and r2p that represent the
-lengths up the branches whose inner radii are r1 and r2, respectively. The
-values are:
-
-  r1p = sqrt( b^2 / sin^2(alpha) - r1^2 )
-
-and similarly for r2p (using r2 instead of r2); the value of b^2 is given by:
-
-  b^2 = r1^2 + r2^2 + 2 * r1 * r2 * cos(alpha),
-
-basically using the law of cosines.
-
-The distance up to the ring intersection midpoint appears to be b / sin(alpha).
-
-I am still investigating the most elegant way to justify this, although I have
-brute force approach using the law of cosines to find b followed by several uses
-of the law of sines.
-
---]]
-
 -- Returns `center`, `ray`, and a possibly adjusted `angle` for the tree_pt.
-local function get_ring_center_and_ray(tree_pt, num_pts, angle)
+local function get_center_ray_and_angle(tree_pt, num_pts, angle)
   assert(tree_pt and num_pts and angle)
+
+  --[[
+
+  The easy cases here are the leaves, parent points, and the trunk.
+
+  Leaves: the ring is a single point coinciding with the leaf point.
+
+  Trunk and parents: the ring points all lie on a circle in a plane
+    perpendicular to the point's stick. The trunk ring's center is exactly the
+    trunk point, while other parent points have a ring center moved slightly
+    downward to make more room for the bark around forks.
+
+  --]]
 
   if tree_pt.kind == 'leaf' then
     return tree_pt.pt, Vec3:new(0, 0, 0), angle
@@ -195,28 +172,65 @@ local function get_ring_center_and_ray(tree_pt, num_pts, angle)
 
   --[[
 
-      TODO Update these comments.
+  All that remains is the difficult case: child points.
 
-      Mathematcal values used here:
+  Every child point has a sibling. We want these two rings to share a single
+  line segment that is orthogonal to both sibling's sticks. As above, each ring
+  will be in a plane perpendicular to the child point's stick.
 
-      The two outgoing branches have angle `alpha` between them.
+  Child points may request different radii. Because of the shared line segment,
+  the actual values will be adjusted a bit. The shared line segment has the
+  average length of the requested line parts for each sibling. The remaining
+  ring points are evenly spaced around that shared line segment.
 
-      Set the variable
-        y = distnace from tree_pt.pt to each ring center along the branches,
-      and
-        x = the distance from tree_pt.pt to the shared ring part.
-  
-      Each ring part, opposite the ring center, forms an isosceles corner. The
-      circumference side has length part_len. The radial sides have length
-        r_o = outer radius,
-      while the shortest distance from the center to ring part is called
-        r_i = inner radius.
+  Mathematically, it is not completely obvious how to derive all the needed
+  values. Starting with the requested radii and
+
+    alpha = the angle between the siblings' sticks,
+
+  we must compute the distances from the branch point (tree_pt.pt)
+  to the ring centers; we call these distances:
+
+    to_self_r = distance from tree_pt.pt to our ring center,
+    to_sib_r  = distance from tree_pt.pt to our sibling's ring center.
+
+                     self_inner_r (aka r1)
+                      A__________o mid_pt
+                      |\__        \
+                      |   ---___    \  sib_inner_r (aka r2)
+                      |      b  ---___\
+                      |               / B
+           to_self_r  |             /
+                      |           /
+                      |         /  to_sib_r
+                      |       /
+                      |     /
+                      |   /
+                      | /
+                      o tree_pt.pt
+
+  The initial radii are out radii -- they give the distance from the ring center
+  to individual ring points. In the above diagram, the radii are *inner* radii,
+  meaning that they give the shortest distance from the ring center to the ring
+  polygon that approximates a circle.
+
+  The law of cosines gives us the length of b. The angles at points A and B are
+  right = 90 degrees. So that quadrilateral is inscribed in a circle, and we can
+  use a generalized law of sines to find the length from tree_pt.pt to mid_pt.
+  Then we can use the Pythagorean theorem to find to_{self,sib}_r.
+
+  The remaining math is less tricky, so I hope the code for it will be
+  self-explanatory. I guess I'm assuming the reader has some intuition for 3d
+  vectors. Sorry if that's not the case! This comment is already pretty long.
+
+  Bye, thanks for reading!
 
   --]]
 
+  -- We are in the 'child' point case.
   assert(tree_pt.kind == 'child')
 
-  -- Find alpha.
+  -- Find alpha, the angle between the two branch directions.
   local sibling     = get_sibling(tree_pt)
   local sib_radius  = get_ring_radius(sibling)
   local to_self_dir = get_up_vec(tree_pt):normalize()
@@ -231,16 +245,14 @@ local function get_ring_center_and_ray(tree_pt, num_pts, angle)
   local sib_part_len = sib_radius * 2 * math.sin(sib_angle / 2)
   local sib_inner_r  = sib_part_len / 2 / math.tan(sib_angle / 2)
 
-  -- Find to_self_r, to_sib_r, TODO
+  -- Find to_self_r and to_sib_r, the distances to the ring centers.
   local r1, r2       = self_inner_r, sib_inner_r
   local b_squared    = r1^2 + r2^2 + 2 * r1 * r2 * math.cos(alpha)
   local sin_alpha_sq = math.sin(alpha)^2
   local to_self_r    = math.sqrt(b_squared / sin_alpha_sq - r1^2)
   local to_sib_r     = math.sqrt(b_squared / sin_alpha_sq - r2^2)
 
-  -- TODO Drop any unused values.
-
-  -- Find center = our ring's center and mid_pt, which is on both rings midway
+  -- Find center = our ring's center, and mid_pt, which is on both rings midway
   -- between ring1 and ring2 in each.
   local out = tree_pt.parent.out
   if tree_pt.parent.kids[2] == tree_pt then
@@ -249,31 +261,27 @@ local function get_ring_center_and_ray(tree_pt, num_pts, angle)
   local center        = tree_pt.pt + to_self_r * to_self_dir
   local to_mid_pt_dir = to_self_dir:cross(out)
   local mid_pt        = center + self_inner_r * to_mid_pt_dir
-
-  -- TEMP cleanup
   assert(not center:has_nan())
   assert(not mid_pt:has_nan())
 
-  -- TEMP test
-  local sib_center = sibling.pt + to_sib_r * to_sib_dir
-  local from_sib_to_mid_pt_dir = out:cross(to_sib_dir)
-  local sib_mid_pt = sib_center + sib_inner_r * from_sib_to_mid_pt_dir
-
+  -- This test could theoretically be skipped, but I feel better knowing that
+  -- these values match up.
+  local sib_center        = sibling.pt + to_sib_r * to_sib_dir
+  local sib_to_mid_pt_dir = out:cross(to_sib_dir)
+  local sib_mid_pt        = sib_center + sib_inner_r * sib_to_mid_pt_dir
   for i = 1, 3 do
     assert(math.abs(sib_mid_pt[i] - mid_pt[i]) < 0.001)
   end
 
-  -- Find ring1.
-  local ring1, ring2
+  -- Find ring1, ring2, and adjusted_angle.
+  -- The angle is adjusted since the shared line is avg_part_len long.
   local avg_part_len   = (part_len + sib_part_len) / 2
   local parent         = tree_pt.parent
   local big_angle      = 2 * math.atan2(avg_part_len / 2, self_inner_r)
   local adjusted_angle = (2 * math.pi - big_angle) / (num_pts - 1)
-
-  ring1 = mid_pt + out * (avg_part_len / 2)
-  ring2 = mid_pt - out * (avg_part_len / 2)
-  tree_pt.ring = {ring1}
-
+  local ring1          = mid_pt + out * (avg_part_len / 2)
+  local ring2          = mid_pt - out * (avg_part_len / 2)
+  tree_pt.ring         = {ring1}
   assert(not ring1:has_nan())
   assert(not ring2:has_nan())
 
@@ -285,15 +293,14 @@ local function add_ring_to_pt(tree_pt)
     tree_pt.ring_center = tree_pt.pt
     tree_pt.ring = {tree_pt.pt}
   else                                         -- The trunk or branch cases.
-    -- TODO Drop the asserts below once this is further along.
-    local num_pts = get_num_pts(tree_pt)
-                    assert(num_pts <= max_ring_pts)
+    local num_pts     = get_num_pts(tree_pt)
+                        assert(num_pts <= max_ring_pts)
     -- `angle` is the angle in radius between outgoing rays from the center.
     local angle       = 2 * math.pi / num_pts
     local up          = get_up_vec(tree_pt)
                         assert(getmetatable(up) == Vec3)
     -- `ray` is the vector of the first outgoing ray from the center.
-    local center, ray, angle = get_ring_center_and_ray(tree_pt, num_pts, angle)
+    local center, ray, angle = get_center_ray_and_angle(tree_pt, num_pts, angle)
                                assert(getmetatable(center) == Vec3)
                                assert(getmetatable(ray) == Vec3)
     local R                  = Mat3:rotate(angle, up)

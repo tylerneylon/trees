@@ -153,10 +153,6 @@ local function add_to_tree(args, tree)
   end
   local out_dir = dir:cross(arbit_dir):normalize()
 
-  -- TEMP
-  dbg_pr('turn_angle=' .. turn_angle)
-  dbg_pr('args.direction=' .. args.direction:as_str())
-
   out_dir = Mat3:rotate(turn_angle, args.direction) * out_dir
 
   local dir1 = Mat3:rotate( split_angle * w1, out_dir) * args.direction
