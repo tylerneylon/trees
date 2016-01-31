@@ -1,7 +1,5 @@
 // lines.h
 //
-// https://github.com/tylerneylon/apanga-mac
-//
 // A Lua-facing library for easily drawing lines.
 // The interface is split up to allow for a moderately efficient separation of
 // data updating and drawing; often a data update is slower than a draw call, so

@@ -1,7 +1,6 @@
 // lines.c
 //
-// https://github.com/tylerneylon/apanga-mac
-//
+
 
 #include "lines.h"
 

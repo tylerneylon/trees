@@ -8,11 +8,11 @@ flat out vec3 triColorOut;
 flat out vec3 normal;
 
 uniform mat4 mvp;
-uniform mat3 normal_matrix;
+uniform mat3 normal_xform;
 
 void main() {
   gl_Position = mvp * vec4(vPosition, 1);
   triColorOut = triColorIn;
   triColorOut = vec3(0.494, 0.349, 0.204);
-  normal      = normal_matrix * normalIn;
+  normal      = normal_xform * normalIn;
 }

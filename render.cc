@@ -622,7 +622,7 @@ static void use_program(GLuint program, mat4 &mvp, mat3 &normal_matrix) {
   GLuint mvp_loc = glGetUniformLocation(program, "mvp");
   glUniformMatrix4fv(mvp_loc, 1 /* count */, GL_FALSE /* transpose */, &mvp[0][0]);
   
-  GLuint normal_matrix_loc = glGetUniformLocation(program, "normal_matrix");
+  GLuint normal_matrix_loc = glGetUniformLocation(program, "normal_xform");
   glUniformMatrix3fv(normal_matrix_loc, 1 /* count */, GL_FALSE /* transpose */, &normal_matrix[0][0]);
 }
 
@@ -860,7 +860,7 @@ extern "C" {
     glEnable(GL_CULL_FACE);
     
     line_program = glhelp__load_program("line_vs.glsl", "line_fs.glsl");
-    bark_program = glhelp__load_program("bark_vs.glsl", "bark_fs.glsl");
+    bark_program = glhelp__load_program("bark.vert.glsl", "bark.frag.glsl");
     
     glGenVertexArrays(1, &vao);
     glBindVertexArray(vao);
