@@ -72,11 +72,8 @@ static void set_array_as_buffer_data(Array array) {
                GL_STATIC_DRAW);                  // usage hint
 }
 
-// This has an int return value so we can use the Lua convention of returning
-// functions that don't return.
-static int gl_setup_new_triangle_strip(lua_State *L,
-                                       TriangleStrip *strip,
-                                       Array v_pts) {
+static void gl_setup_new_triangle_strip(TriangleStrip *strip,
+                                        Array v_pts) {
 
   // Compute the normals of each triangle.
   Array n_vecs = array__new(v_pts->count, sizeof(GLfloat));
@@ -131,8 +128,6 @@ static int gl_setup_new_triangle_strip(lua_State *L,
                         (void *)(0));  // offset
 
   glhelp__error_check;
-
-  return 0;  // not used; following the Lua convention for errors' sake
 }
 
 
@@ -140,7 +135,7 @@ static int gl_setup_new_triangle_strip(lua_State *L,
 
 // This creates an Array of GLfloats from what is expected to be a Lua array at
 // the given index on L's stack. The caller is responsible for calling
-// array__delete on the returned Array.
+// array__delete on the returned Array. L's stack is preserved.
 static Array c_array_from_lua_array(lua_State *L, int index) {
 
   int arr_len = (int)lua_rawlen(L, index);
@@ -159,15 +154,6 @@ static Array c_array_from_lua_array(lua_State *L, int index) {
   return arr;
 }
 
-// This checks if the top stack value is of the given type, and throws an
-// argerror if not. The narg value indicates which argument to complain to the
-// user about.
-static int argerror_type_check(lua_State *L, int ltype, int narg,
-                               const char *extramsg) {
-  if (lua_type(L, -1) == ltype) return 0;
-  return luaL_argerror(L, narg, extramsg);  // The return is a convention.
-}
-
 static void luaL_checkindexable(lua_State *L, int narg) {
   if (lua_istable(L, narg)) return;  // tables are indexable.
   if (!luaL_getmetafield(L, narg, "__index")) {
@@ -181,22 +167,14 @@ static void luaL_checkindexable(lua_State *L, int narg) {
 // Expected parameters: a {points table}.
 static int triangle_strip__new(lua_State *L) {
   
-  // TODO Update this code. It's old and expects {points = points} instead
-  //      of just a points table directly.
-
   // Expect the 1st value to be table-like.
   luaL_checkindexable(L, 1);
-      // stack = [vals_table]
+      // stack = [v_pts, ..]
 
   // Collect v_pts.
-  lua_getfield(L, 1, "points");
-      // stack = [vals_table, points]
-  argerror_type_check(L, LUA_TTABLE, 1, "expected table val @'points' key");
-  Array v_pts = c_array_from_lua_array(L, -1);
-  lua_pop(L, 1);
-      // stack = [vals_table]
-
-  // TODO check stack comments (code deleted here)
+  Array v_pts = c_array_from_lua_array(L, 1);
+  lua_settop(L, 0);
+      // stack = []
 
   // Create a triangle_strip instance and set its metatable.
   TriangleStrip *strip =
@@ -204,11 +182,11 @@ static int triangle_strip__new(lua_State *L) {
       // stack = [strip]
   luaL_getmetatable(L, triangle_strip_metatable);
       // stack = [strip, mt]
-  lua_setmetatable(L, -2);
+  lua_setmetatable(L, 1);
       // stack = [strip]
 
   // Set up the C data.
-  gl_setup_new_triangle_strip(L, strip, v_pts);
+  gl_setup_new_triangle_strip(strip, v_pts);
 
   array__delete(v_pts);
 
