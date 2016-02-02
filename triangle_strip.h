@@ -1,18 +1,14 @@
 // triangle_strip.h
 //
-// A Lua-facing library for easily drawing a box.
-//
-// TODO Update these comments.
+// A Lua-facing library for easily drawing a triangle strip.
+// This uses the bark shader in bark.{vert,frag}.glsl.
 //
 // Lua interface:
 //
-//   -- v_pts is a flat array of 3d vertex positions.
-//   -- t_pts is a flat array of 2d texture positions in pixel coords.
-//   strip = TriangleStrip.new({points     = <v_pts>,
-//                              tex_coords = <t_pts>,
-//                              image      = <image_filename>})
-//   strip:set_texture('my_image.png')
+//   -- Do this once for the model being drawn.
+//   strip = TriangleStrip:new({flat sequence of vertex points})
 //
+//   -- Call this for every frame where you want to draw the model.
 //   strip:draw()
 //   
 
