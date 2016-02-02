@@ -11,6 +11,7 @@ extern "C" {
 #include "clua.h"
 #include "file.h"
 #include "lines.h"
+#include "triangle_strip.h"
 
 #include "lua.h"
 #include "lualib.h"
@@ -40,15 +41,23 @@ static float aspect_ratio;
 static float angle = 0.0f;
 
 static mat4 mvp;
+static mat4 normal_xform;
 
 
 // Internal functions.
 
-static void transform_callback(GLint transform_loc) {
+static void send_mvp(GLint transform_loc) {
   glUniformMatrix4fv(transform_loc,  // uniform location
                      1,              // count
                      GL_FALSE,       // don't use transpose
                      &mvp[0][0]);    // src matrix
+}
+
+static void send_normal_xform(GLint transform_loc) {
+  glUniformMatrix4fv(transform_loc,         // uniform location
+                     1,                     // count
+                     GL_FALSE,              // don't use transpose
+                     &normal_xform[0][0]);  // src matrix
 }
 
 #define set_lua_global_num(name)   \
@@ -97,7 +106,14 @@ extern "C" void luarender__init() {
   // Load and set up the lines module.
   lines__load_lib(L);
     // stack = []
-  lines__set_transform_callback(transform_callback);
+  lines__set_transform_callback(send_mvp);
+
+  // Load and set up the triangle_strip module.
+  triangle_strip__load_lib(L);
+    // stack = []
+  assert(lua_gettop(L) == 0);
+  triangle_strip__set_mvp_callback(send_mvp);
+  triangle_strip__set_normal_callback(send_normal_xform);
   
   // Call render.init.
   clua__call(L, "render", "init", "");  // "" --> no input, no output
@@ -124,6 +140,11 @@ extern "C" void luarender__draw(int w, int h) {
   }
 
   mat4 model = rotate(mat4(1.0), angle, vec3(0.0, 1.0, 0.0));
+
+  // We copy over the normal_xform at this point since this is the unity matrix
+  // part of what we're doing to the model.
+  normal_xform = model;
+
   model = translate(model, vec3(0, -3, 0));
   model = scale(model, vec3(zoom_scale));
   mvp = projection * view * model;

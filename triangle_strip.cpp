@@ -33,6 +33,8 @@ using namespace glm;
 static GLuint            program;
 static GLint             mvp_loc;
 static GLint    normal_xform_loc;
+static triangle_strip__TransformCallback mvp_callback          = NULL;
+static triangle_strip__TransformCallback normal_xform_callback = NULL;
 
 // State owned by any single TriangleStrip instance.
 typedef struct {
@@ -240,8 +242,9 @@ static int triangle_strip__draw(lua_State *L) {
 
   glBindVertexArray(strip->vao);
   
-  // TODO Set the mvp and normal_xform here.
-
+  mvp_callback(mvp_loc);
+  normal_xform_callback(normal_xform_loc);
+  
   glDrawArrays(GL_TRIANGLE_STRIP,  // mode
                0,                  // start
                strip->num_pts);    // count
@@ -279,4 +282,12 @@ extern "C" void triangle_strip__load_lib(lua_State *L) {
   lua_setglobal(L, "TriangleStrip");  // --> stack = [..]
 
   gl_init();
+}
+
+void triangle_strip__set_mvp_callback(triangle_strip__TransformCallback cb) {
+  mvp_callback = cb;
+}
+
+void triangle_strip__set_normal_callback(triangle_strip__TransformCallback cb) {
+  normal_xform_callback = cb;
 }
