@@ -33,7 +33,7 @@ using namespace glm;
 static GLuint            program;
 static GLint             mvp_loc;
 static GLint    normal_xform_loc;
-static triangle_strip__TransformCallback mvp_callback          = NULL;
+static triangle_strip__TransformCallback          mvp_callback = NULL;
 static triangle_strip__TransformCallback normal_xform_callback = NULL;
 
 // State owned by any single TriangleStrip instance.
@@ -170,11 +170,11 @@ static void luaL_checkindexable(lua_State *L, int narg) {
 static int triangle_strip__new(lua_State *L) {
   
   // Expect the 1st value to be table-like.
-  luaL_checkindexable(L, 1);
-      // stack = [v_pts, ..]
+  luaL_checkindexable(L, 2);
+      // stack = [self, v_pts, ..]
 
   // Collect v_pts.
-  Array v_pts = c_array_from_lua_array(L, 1);
+  Array v_pts = c_array_from_lua_array(L, 2);
   lua_settop(L, 0);
       // stack = []
 
@@ -189,6 +189,8 @@ static int triangle_strip__new(lua_State *L) {
 
   // Set up the C data.
   gl_setup_new_triangle_strip(strip, v_pts);
+
+  glhelp__error_check;
 
   array__delete(v_pts);
 
@@ -238,13 +240,11 @@ static int triangle_strip__draw(lua_State *L) {
     }
   }
 
+  // Prepare for and execute OpenGL drawing.
   glUseProgram(program);
-
   glBindVertexArray(strip->vao);
-  
   mvp_callback(mvp_loc);
   normal_xform_callback(normal_xform_loc);
-  
   glDrawArrays(GL_TRIANGLE_STRIP,  // mode
                0,                  // start
                strip->num_pts);    // count
@@ -270,7 +270,7 @@ extern "C" void triangle_strip__load_lib(lua_State *L) {
   lua_pushvalue(L, -1);            // --> stack = [.., mt, mt]
   lua_setfield(L, -2, "__index");  // --> stack = [.., mt]
 
-  add_fn(triangle_strip__draw,                 "draw");
+  add_fn(triangle_strip__draw, "draw");
 
   lua_pop(L, 1);  // --> stack = [..]
 

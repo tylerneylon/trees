@@ -10,7 +10,7 @@
 
 // This controls whether or not the rendering is controlled by the Lua scripts.
 // The value is expected to be YES or NO.
-#define    do_use_lua         NO
+#define    do_use_lua         YES
 
 // If this is YES, tree generation is restricted to 2D. This project overall is
 // focused on the 3d case, and the 2d case exists as a way to explore a

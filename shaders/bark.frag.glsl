@@ -16,6 +16,4 @@ void main() {
   float mult = dot(normal, light_dir) * 0.5 + 0.5;
   
   out_color *= mult;
-  
-  
 }

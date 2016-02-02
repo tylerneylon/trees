@@ -41,7 +41,7 @@ static float aspect_ratio;
 static float angle = 0.0f;
 
 static mat4 mvp;
-static mat4 normal_xform;
+static mat3 normal_xform;
 
 
 // Internal functions.
@@ -54,7 +54,7 @@ static void send_mvp(GLint transform_loc) {
 }
 
 static void send_normal_xform(GLint transform_loc) {
-  glUniformMatrix4fv(transform_loc,         // uniform location
+  glUniformMatrix3fv(transform_loc,         // uniform location
                      1,                     // count
                      GL_FALSE,              // don't use transpose
                      &normal_xform[0][0]);  // src matrix
@@ -117,6 +117,9 @@ extern "C" void luarender__init() {
   
   // Call render.init.
   clua__call(L, "render", "init", "");  // "" --> no input, no output
+  
+  // Any one-time OpenGL setup.
+  glEnable(GL_DEPTH_TEST);
 }
 
 extern "C" void luarender__draw(int w, int h) {
@@ -129,7 +132,9 @@ extern "C" void luarender__draw(int w, int h) {
   
   // Recompute the mvp matrix.
   mat4 projection = perspective(45.0f, aspect_ratio, 0.1f, 1000.0f);
-  mat4 view  = lookAt(vec3(4.0, 4.0, 2.0), vec3(0.0), vec3(0.0, 1.0, 0.0));
+  mat4 view  = lookAt(vec3(4.0, 4.0, 2.0),   // eye
+                      vec3(0.0),             // at
+                      vec3(0.0, 1.0, 0.0));  // up
 
   if (is_tree_2d) {
     float d = 5.5;
@@ -143,7 +148,7 @@ extern "C" void luarender__draw(int w, int h) {
 
   // We copy over the normal_xform at this point since this is the unity matrix
   // part of what we're doing to the model.
-  normal_xform = model;
+  normal_xform = mat3(model);
 
   model = translate(model, vec3(0, -3, 0));
   model = scale(model, vec3(zoom_scale));

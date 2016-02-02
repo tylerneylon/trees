@@ -50,6 +50,22 @@ local function setup_lines()
   end
 end
 
+-- These next two functions are not meant to be called during normal use.
+-- They're here as a way to help test/debug the TriangleStrip class.
+
+local function test_triangles_init()
+  strip = TriangleStrip:new({0,   0, 0,
+                             1,   0, 0,
+                             0.5, 0, 1,
+                             0.5, 1, 0.5,
+                             0,   0, 0,
+                             1,   0, 0})
+end
+
+local function test_triangles_draw()
+  strip:draw()
+end
+
 
 -- Public methods.
 
