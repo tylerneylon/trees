@@ -29,7 +29,6 @@ void triangle_strip__load_lib(lua_State *L);
 // mvp matrix or a normal tranformation matrix.
 typedef void (*triangle_strip__TransformCallback)(GLint);
 
-// TODO Are these needed?
 void triangle_strip__set_mvp_callback   (triangle_strip__TransformCallback cb);
 void triangle_strip__set_normal_callback(triangle_strip__TransformCallback cb);
 
