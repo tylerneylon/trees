@@ -676,7 +676,7 @@ static void setup_stick_bark() {
       
       if (j >= 2) {
         bool reverse = (k == 0);  // It's a triangle strip; every other triangle is oriented clockwise.
-        vec3 normal = get_normal_from_last_tri(stick_bark_pts, reverse);
+          vec3 normal = get_normal_from_last_tri(stick_bark_pts, reverse);
         set_pt(stick_bark_normals, index[k], normal);
       }
       
