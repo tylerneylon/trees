@@ -57,9 +57,13 @@ local function add_stick_bark(tree)
         append(bark_pts, up.ring[add_mod(up_start, i, #up.ring)])
         append(bark_pts, tree_pt.ring[i % #tree_pt.ring + 1])
       end
-      assert(#bark_pts = 3 * 2 * num_pairs)  -- They're pairs of triples.
+      assert(#bark_pts == 3 * 2 * num_pairs)  -- They're pairs of triples.
 
-      -- TODO Finish and debug.
+      tree_pt.bark_strip = TriangleStrip:new(bark_pts)
+
+      -- TODO Next: The top ring index selection is not working as intended.
+      --            I think the right thing is actually to choose the first top
+      --            point that's counterclockwise from the bottom first point.
     end
   end
 end

@@ -34,6 +34,7 @@ local make_tree = {}
 
 -- Requires.
 
+local bark  = require 'bark'
 local rings = require 'rings'
 
 local Mat3  = require 'Mat3'
@@ -186,6 +187,7 @@ function make_tree.make()
   --            add_to_tree can receive it as a second param.
   local tree = add_to_tree(tree_add_params)
   rings.add_rings(tree)
+  bark.add_bark(tree)
   return tree
 end
 

@@ -78,6 +78,14 @@ end
 -- This is expected to be called once per render cycle.
 function render.draw()
   lines.draw_all()
+
+  for _, tree_pt in pairs(tree) do
+    -- TODO When bark generation is done, assert that every non-leaf point has
+    --      a bark_strip.
+    if tree_pt.bark_strip then
+      tree_pt.bark_strip:draw()
+    end
+  end
 end
 
 
