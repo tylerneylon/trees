@@ -31,19 +31,24 @@ end
 local function add_stick_bark(tree)
   for _, tree_pt in pairs(tree) do
     if tree_pt.kind == 'child' then
+
       -- The two rings will have the same number of points except when the
       -- upward tree point is a leaf.
-      local up = tree_pt.up
-      assert(#tree_pt.ring == #up.ring or up.kind == 'leaf')
+      local up_pt = tree_pt.up
+      assert(#tree_pt.ring == #up_pt.ring or up_pt.kind == 'leaf')
 
       -- Find out which point to start with in the top ring.
       local ray = tree_pt.ring[1] - tree_pt.ring_center
+      local up  = up_pt.pt - tree_pt.pt
+      local out = ray:cross(up)
+      -- We want the first top-ring point that's clockwise - when looking down -
+      -- from our ray. A clockwise top_ray will have top_ray:dot(out) >= 0.
       local up_start               -- This will be the first index in up.ring.
       local best_dot = -math.huge  -- We'll maximize up_ray:dot(ray).
-      for i = 1, #up.ring do
-        local up_ray = up.ring[i] - up.ring_center
-        local d = up_ray:dot(ray)
-        if d > best_dot then
+      for i = 1, #up_pt.ring do
+        local top_ray = up_pt.ring[i] - up_pt.ring_center
+        local d = top_ray:dot(ray)
+        if top_ray:dot(out) >= 0 and d > best_dot then
           best_dot, up_start = d, i
         end
       end
@@ -54,16 +59,12 @@ local function add_stick_bark(tree)
       local num_pairs = #tree_pt.ring + 1
       local bark_pts = {}  -- A flat sequence of bark points.
       for i = 0, num_pairs - 1 do
-        append(bark_pts, up.ring[add_mod(up_start, i, #up.ring)])
+        append(bark_pts, up_pt.ring[add_mod(up_start, i, #up_pt.ring)])
         append(bark_pts, tree_pt.ring[i % #tree_pt.ring + 1])
       end
       assert(#bark_pts == 3 * 2 * num_pairs)  -- They're pairs of triples.
 
       tree_pt.bark_strip = TriangleStrip:new(bark_pts)
-
-      -- TODO Next: The top ring index selection is not working as intended.
-      --            I think the right thing is actually to choose the first top
-      --            point that's counterclockwise from the bottom first point.
     end
   end
 end
