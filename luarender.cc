@@ -12,6 +12,7 @@ extern "C" {
 #include "file.h"
 #include "lines.h"
 #include "triangle_strip.h"
+#include "vertex_array.h"
 
 #include "lua.h"
 #include "lualib.h"
@@ -114,6 +115,13 @@ extern "C" void luarender__init() {
   assert(lua_gettop(L) == 0);
   triangle_strip__set_mvp_callback(send_mvp);
   triangle_strip__set_normal_callback(send_normal_xform);
+  
+  // Load and set up the vertex_array module.
+  vertex_array__load_lib(L);
+  // stack = []
+  assert(lua_gettop(L) == 0);
+  vertex_array__set_mvp_callback(send_mvp);
+  vertex_array__set_normal_callback(send_normal_xform);
   
   // Call render.init.
   clua__call(L, "render", "init", "");  // "" --> no input, no output

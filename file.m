@@ -6,7 +6,7 @@
 
 NSString *nsstr_save_dir() {
   NSArray *paths = NSSearchPathForDirectoriesInDomains(NSApplicationSupportDirectory, NSUserDomainMask, YES);
-  return [paths[0] stringByAppendingPathComponent:@"Apanga"];
+  return [paths[0] stringByAppendingPathComponent:@"Trees"];
 }
 
 
