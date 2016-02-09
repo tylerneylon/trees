@@ -211,6 +211,9 @@ static int vertex_array__draw(lua_State *L) {
                          "Expected 'triangle strip' or 'triangles.");  // msg
   }
 
+  // TODO NEXT Update how this is drawn to avoid redundant calls such as
+  //           glUseProgram.
+
   // Prepare for and execute OpenGL drawing.
   glUseProgram(program);
   glBindVertexArray(v_array->vao);

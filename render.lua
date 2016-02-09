@@ -83,7 +83,7 @@ function render.draw()
     -- TODO When bark generation is done, assert that every non-leaf point has
     --      a bark_strip.
     if tree_pt.bark_strip then
-      tree_pt.bark_strip:draw()
+      tree_pt.bark_strip:draw('triangle strip')
     end
   end
 end

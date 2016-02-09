@@ -64,7 +64,7 @@ local function add_stick_bark(tree)
       end
       assert(#bark_pts == 3 * 2 * num_pairs)  -- They're pairs of triples.
 
-      tree_pt.bark_strip = TriangleStrip:new(bark_pts)
+      tree_pt.bark_strip = VertexArray:new(bark_pts)
     end
   end
 end
