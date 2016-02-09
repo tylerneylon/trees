@@ -64,13 +64,59 @@ local function add_stick_bark(tree)
       end
       assert(#bark_pts == 3 * 2 * num_pairs)  -- They're pairs of triples.
 
-      tree_pt.bark_strip = VertexArray:new(bark_pts)
+      tree_pt.stick_bark = VertexArray:new(bark_pts)
     end
   end
 end
 
+-- TODO Enable us to specify the drawing mode for a vertex array at the same
+--      time that we provide the point data.
+
 local function add_joint_bark(tree)
-  -- TODO Implement.
+  for _, tree_pt in pairs(tree) do
+    if tree_pt.kind == 'parent' then
+
+      -- Set up top_pts with the combined points of the top rings.
+      local top_pts = {}
+      for _, kid in ipairs(tree_pt.kids) do
+        for i = 2, #kid.ring do
+          table.insert(top_pts, kid.ring[i])
+        end
+      end
+      local bot_pts = tree_pt.ring  -- A nice name to complement top_pts.
+
+      -- Add triangles until we've covered the joint.
+      local bark_pts = {}
+      local top_idx, bot_idx = 1, 1
+      repeat
+
+        -- Add the first two points of the next triangle.
+        append(bark_pts, top_pts[top_idx])
+        append(bark_pts, bot_pts[bot_idx])
+
+        -- Determine which index to increment.
+        local top_next, bot_next = top_idx / #top_pts, bot_idx / #bot_pts
+
+        -- Increment an index and add the third triangle point.
+        if top_next < bot_next then
+          top_idx = top_idx + 1
+          assert(top_idx <= #top_pts)
+          append(bark_pts, top_pts[top_idx])
+        else
+          bot_idx = bot_idx + 1
+          assert(bot_idx <= #bot_pts)
+          append(bark_pts, bot_pts[bot_idx])
+        end
+      until top_idx == #top_pts and bot_idx == #bot_pts
+
+      -- TODO NEXT There are two issues right now:
+      --           1. The triangles appear to be wrong. Debug.
+      --           2. The normals are being computed as if this were a triangle
+      --              strip, which is wrong. That needs a fix mainly within
+      --              VertexArray itself.
+      tree_pt.joint_bark = VertexArray:new(bark_pts)
+    end
+  end
 end
 
 
