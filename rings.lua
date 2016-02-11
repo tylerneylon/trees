@@ -263,6 +263,7 @@ local function get_center_ray_and_angle(tree_pt, num_pts, angle)
   local mid_pt        = center + self_inner_r * to_mid_pt_dir
   assert(not center:has_nan())
   assert(not mid_pt:has_nan())
+  tree_pt.ring_meet_mid_pt = mid_pt
 
   -- This test could theoretically be skipped, but I feel better knowing that
   -- these values match up.

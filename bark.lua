@@ -83,7 +83,25 @@ local function add_joint_bark(tree)
           table.insert(top_pts, kid.ring[i])
         end
       end
-      local bot_pts = tree_pt.ring  -- A nice name to complement top_pts.
+
+      -- TODO Consider factoring out some code between what's next and
+      --      add_stick_bark.
+
+      -- Set up bot_pts to have the points of tree_pt.ring, but with a
+      -- carefully-chosen first point.
+      local top_ray = tree_pt.kids[1].ring[2] - tree_pt.kids[1].ring_meet_mid_pt
+      local best_dot, bot_start = -math.huge, nil
+      for i = 1, #tree_pt.ring do
+        local bot_ray = tree_pt.ring[i] - tree_pt.ring_center
+        local d = bot_ray:dot(top_ray)
+        if d > best_dot then
+          best_dot, bot_start = d, i
+        end
+      end
+      local bot_pts, num_pts = {}, #tree_pt.ring
+      for i = bot_start, bot_start + num_pts - 1 do
+        bot_pts[#bot_pts + 1] = tree_pt.ring[(i - 1) % num_pts + 1]
+      end
 
       -- Add triangles until we've covered the joint.
       local bark_pts = {}
@@ -109,11 +127,13 @@ local function add_joint_bark(tree)
         end
       until top_idx == #top_pts and bot_idx == #bot_pts
 
-      -- TODO NEXT There are two issues right now:
-      --           1. The triangles appear to be wrong. Debug.
+      -- TODO NEXT There are a few issues:
+      --           1. There appear to be missing triangles. Debug.
       --           2. The normals are being computed as if this were a triangle
       --              strip, which is wrong. That needs a fix mainly within
       --              VertexArray itself.
+      --           3. Rendering is inefficient in that it makes many more gl
+      --              calls than necessary - likewise for triangle strips; fix.
       tree_pt.joint_bark = VertexArray:new(bark_pts)
     end
   end
