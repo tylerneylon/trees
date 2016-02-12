@@ -64,7 +64,7 @@ local function add_stick_bark(tree)
       end
       assert(#bark_pts == 3 * 2 * num_pairs)  -- They're pairs of triples.
 
-      tree_pt.stick_bark = VertexArray:new(bark_pts)
+      tree_pt.stick_bark = VertexArray:new(bark_pts, 'triangle strip')
     end
   end
 end
@@ -134,7 +134,7 @@ local function add_joint_bark(tree)
       --              VertexArray itself.
       --           3. Rendering is inefficient in that it makes many more gl
       --              calls than necessary - likewise for triangle strips; fix.
-      tree_pt.joint_bark = VertexArray:new(bark_pts)
+      tree_pt.joint_bark = VertexArray:new(bark_pts, 'triangles')
     end
   end
 end

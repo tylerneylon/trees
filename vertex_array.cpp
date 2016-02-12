@@ -31,12 +31,18 @@ static GLint    normal_xform_loc;
 static vertex_array__TransformCallback          mvp_callback = NULL;
 static vertex_array__TransformCallback normal_xform_callback = NULL;
 
+typedef enum {
+  mode_triangle_strip,
+  mode_triangles
+} Mode;
+
 // State owned by any single VertexArray instance.
 typedef struct {
   GLuint vao;
   GLuint vertices_vbo;
   GLuint normals_vbo;
   int    num_pts;
+  Mode   draw_mode;
 } VertexArray;
 
 // Names for vertex attribute indexes in our vertex shader.
@@ -88,7 +94,7 @@ static void gl_setup_new_vertex_array(VertexArray *v_array,
     vec3 n = sign * normalize(cross(pt1 - pt0, pt2 - pt1));
     for_i_3 array__new_val(n_vecs, GLfloat) = n[i];
 
-    sign *= -1;
+    if (v_array->draw_mode == mode_triangle_strip) sign *= -1;
   }
 
   // Set up and bind the vao.
@@ -159,15 +165,27 @@ static void luaL_checkindexable(lua_State *L, int narg) {
 }
 
 // Lua C function.
-// Expected parameters: a {points table}.
+// Expected parameters: {points table}, draw_mode,
+// where draw_mode is either 'triangle strip' or 'triangles'.
 static int vertex_array__new(lua_State *L) {
-  
+
   // Expect the 1st value to be table-like.
   luaL_checkindexable(L, 2);
       // stack = [self, v_pts, ..]
 
-  // Collect v_pts.
+  // Collect v_pts and draw_mode.
   Array v_pts = c_array_from_lua_array(L, 2);
+  const char *mode_str = luaL_checkstring(L, 3);
+  Mode draw_mode;
+  if (strcmp(mode_str, "triangle strip") == 0) {
+    draw_mode = mode_triangle_strip;
+  } else if (strcmp(mode_str, "triangles") == 0) {
+    draw_mode = mode_triangles;
+  } else {
+    luaL_argerror(L,                                            // state
+                  3,                                            // arg
+                  "Expected 'triangle strip' or 'triangles'");  // msg
+  }
   lua_settop(L, 0);
       // stack = []
 
@@ -181,6 +199,7 @@ static int vertex_array__new(lua_State *L) {
       // stack = [v_array]
 
   // Set up the C data.
+  v_array->draw_mode = draw_mode;
   gl_setup_new_vertex_array(v_array, v_pts);
 
   glhelp__error_check;
@@ -193,22 +212,35 @@ static int vertex_array__new(lua_State *L) {
 // Lua C function.
 // Expected parameters:
 //   self      = a VertexArray instance.
-//   mode      = a string with value 'triangle strip' or 'triangles'
+//   [mode]    = a string with value 'triangle strip' or 'triangles'
 static int vertex_array__draw(lua_State *L) {
   VertexArray *v_array =
       (VertexArray *)luaL_checkudata(L, 1, vertex_array_metatable);
 
-  // Check which drawing mode to use.
-  const char *mode_name = luaL_checkstring(L, 2);
+  // Set the default drawing mode.
   GLenum mode;
-  if (strcmp(mode_name, "triangle strip") == 0) {
-    mode = GL_TRIANGLE_STRIP;
-  } else if (strcmp(mode_name, "triangles") == 0) {
-    mode = GL_TRIANGLES;
-  } else {
-    return luaL_argerror(L,                                            // state
-                         2,                                            // arg
-                         "Expected 'triangle strip' or 'triangles.");  // msg
+  switch(v_array->draw_mode) {
+    case mode_triangle_strip:
+      mode = GL_TRIANGLE_STRIP;
+      break;
+    case mode_triangles:
+      mode = GL_TRIANGLES;
+      break;
+  }
+
+  // Allow the user to override the initially set drawing mode -- although this
+  // could potentially reverse some of the normal vectors.
+  if (lua_isstring(L, 2)) {
+    const char *mode_name = luaL_checkstring(L, 2);
+    if (strcmp(mode_name, "triangle strip") == 0) {
+      mode = GL_TRIANGLE_STRIP;
+    } else if (strcmp(mode_name, "triangles") == 0) {
+      mode = GL_TRIANGLES;
+    } else {
+      return luaL_argerror(L,
+                           2,                                            // arg
+                           "Expected 'triangle strip' or 'triangles.");  // msg
+    }
   }
 
   // TODO NEXT Update how this is drawn to avoid redundant calls such as
