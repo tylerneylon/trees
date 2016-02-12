@@ -103,6 +103,10 @@ local function add_joint_bark(tree)
         bot_pts[#bot_pts + 1] = tree_pt.ring[(i - 1) % num_pts + 1]
       end
 
+      -- Augment both top_pts and bot_pts with a repeat of their first point.
+      top_pts[#top_pts + 1] = top_pts[1]
+      bot_pts[#bot_pts + 1] = bot_pts[1]
+
       -- Add triangles until we've covered the joint.
       local bark_pts = {}
       local top_idx, bot_idx = 1, 1
@@ -127,12 +131,8 @@ local function add_joint_bark(tree)
         end
       until top_idx == #top_pts and bot_idx == #bot_pts
 
-      -- TODO NEXT There are a few issues:
-      --           1. There appear to be missing triangles. Debug.
-      --           2. The normals are being computed as if this were a triangle
-      --              strip, which is wrong. That needs a fix mainly within
-      --              VertexArray itself.
-      --           3. Rendering is inefficient in that it makes many more gl
+      -- TODO NEXT
+      --           *. Rendering is inefficient in that it makes many more gl
       --              calls than necessary - likewise for triangle strips; fix.
       tree_pt.joint_bark = VertexArray:new(bark_pts, 'triangles')
     end
