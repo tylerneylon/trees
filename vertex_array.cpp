@@ -209,22 +209,24 @@ static int vertex_array__new(lua_State *L) {
   return 1;  // --> 1 Lua return value
 }
 
-// Lua C function.
+// This performs common argument handling for the draw() and
+// draw_without_setup() methods. This method will not return if there is an
+// error.
 // Expected parameters:
 //   self      = a VertexArray instance.
 //   [mode]    = a string with value 'triangle strip' or 'triangles'
-static int vertex_array__draw(lua_State *L) {
-  VertexArray *v_array =
-      (VertexArray *)luaL_checkudata(L, 1, vertex_array_metatable);
+static int get_self_and_mode(lua_State *L,
+                              VertexArray **v_array,
+                              GLenum *mode) {
+  *v_array = (VertexArray *)luaL_checkudata(L, 1, vertex_array_metatable);
 
   // Set the default drawing mode.
-  GLenum mode;
-  switch(v_array->draw_mode) {
+  switch((*v_array)->draw_mode) {
     case mode_triangle_strip:
-      mode = GL_TRIANGLE_STRIP;
+      *mode = GL_TRIANGLE_STRIP;
       break;
     case mode_triangles:
-      mode = GL_TRIANGLES;
+      *mode = GL_TRIANGLES;
       break;
   }
 
@@ -233,9 +235,9 @@ static int vertex_array__draw(lua_State *L) {
   if (lua_isstring(L, 2)) {
     const char *mode_name = luaL_checkstring(L, 2);
     if (strcmp(mode_name, "triangle strip") == 0) {
-      mode = GL_TRIANGLE_STRIP;
+      *mode = GL_TRIANGLE_STRIP;
     } else if (strcmp(mode_name, "triangles") == 0) {
-      mode = GL_TRIANGLES;
+      *mode = GL_TRIANGLES;
     } else {
       return luaL_argerror(L,
                            2,                                            // arg
@@ -243,8 +245,53 @@ static int vertex_array__draw(lua_State *L) {
     }
   }
 
-  // TODO NEXT Update how this is drawn to avoid redundant calls such as
-  //           glUseProgram.
+  return 0;  // This return value is only to support the return-on-error idiom.
+}
+
+
+// Public Lua methods.
+
+// Lua C function.
+// Expected parameters: none.
+static int vertex_array__setup_drawing(lua_State *L) {
+  // Prepare for OpenGL drawing.
+  glUseProgram(program);
+  mvp_callback(mvp_loc);
+  normal_xform_callback(normal_xform_loc);
+
+  return 0;  // --> 0 Lua return values
+}
+
+// Lua C function.
+// Expected parameters:
+//   self      = a VertexArray instance.
+//   [mode]    = a string with value 'triangle strip' or 'triangles'
+static int vertex_array__draw_without_setup(lua_State *L) {
+
+  // Parse arguments.
+  VertexArray *v_array;
+  GLenum mode;
+  get_self_and_mode(L, &v_array, &mode);
+
+  // Execute OpenGL drawing.
+  glBindVertexArray(v_array->vao);
+  glDrawArrays(mode,               // mode
+               0,                  // start
+               v_array->num_pts);  // count
+
+  return 0;  // --> 0 Lua return values
+}
+
+// Lua C function.
+// Expected parameters:
+//   self      = a VertexArray instance.
+//   [mode]    = a string with value 'triangle strip' or 'triangles'
+static int vertex_array__draw(lua_State *L) {
+
+  // Parse arguments.
+  VertexArray *v_array;
+  GLenum mode;
+  get_self_and_mode(L, &v_array, &mode);
 
   // Prepare for and execute OpenGL drawing.
   glUseProgram(program);
@@ -276,15 +323,18 @@ extern "C" void vertex_array__load_lib(lua_State *L) {
   lua_pushvalue(L, -1);            // --> stack = [.., mt, mt]
   lua_setfield(L, -2, "__index");  // --> stack = [.., mt]
 
+  // Add the instance methods.
   add_fn(vertex_array__draw, "draw");
+  add_fn(vertex_array__draw_without_setup, "draw_without_setup");
 
   lua_pop(L, 1);  // --> stack = [..]
 
   // Add `VertexArray` as a global module table with a single `new` function.
   static const struct luaL_Reg lib[] = {
     {"new", vertex_array__new},
+    {"setup_drawing", vertex_array__setup_drawing},
     {NULL, NULL}};
-  luaL_newlib(L, lib);                // --> stack = [.., VertexArray]
+  luaL_newlib(L, lib);              // --> stack = [.., VertexArray]
   lua_setglobal(L, "VertexArray");  // --> stack = [..]
 
   gl_init();
