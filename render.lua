@@ -79,8 +79,13 @@ end
 function render.draw()
   -- lines.draw_all()
 
-  VertexArray:draw_all()
+  tree.bark.v_array:draw()
 
+  -- Below is an old way to draw things. It was using a ton of cpu cycles
+  -- because the OpenGL driver takes time to handle this many draw calls in a
+  -- single render cycle. Things on the cpu are much faster if we make a single
+  -- draw call - at the expense of switching some tringle strips to straight
+  -- triangle arrays.
   --[[
   VertexArray:setup_drawing()
   for _, tree_pt in pairs(tree) do

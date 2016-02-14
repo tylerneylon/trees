@@ -29,6 +29,10 @@ local function add_mod(x, y, m)
 end
 
 local function add_stick_bark(tree)
+  if tree.bark == nil then tree.bark = {} end
+  if tree.bark.pts == nil then tree.bark.pts = {} end
+  local bark_pts = tree.bark.pts
+
   for _, tree_pt in pairs(tree) do
     if tree_pt.kind == 'child' then
 
@@ -55,6 +59,20 @@ local function add_stick_bark(tree)
       assert(best_dot >= 0)
       assert(up_start)
 
+      -- Set up the triangles.
+      for i = 0, #tree_pt.ring - 1 do
+        -- Triangle 1.
+        append(bark_pts, up_pt.ring[add_mod(up_start, i, #up_pt.ring)])
+        append(bark_pts, tree_pt.ring[i % #tree_pt.ring + 1])
+        append(bark_pts, up_pt.ring[add_mod(up_start, i + 1, #up_pt.ring)])
+
+        -- Triangle 2.
+        append(bark_pts, up_pt.ring[add_mod(up_start, i + 1, #up_pt.ring)])
+        append(bark_pts, tree_pt.ring[i % #tree_pt.ring + 1])
+        append(bark_pts, tree_pt.ring[(i + 1) % #tree_pt.ring + 1])
+      end
+
+      --[[
       -- Set up the triangle strip.
       local num_pairs = #tree_pt.ring + 1
       local bark_pts = {}  -- A flat sequence of bark points.
@@ -65,6 +83,7 @@ local function add_stick_bark(tree)
       assert(#bark_pts == 3 * 2 * num_pairs)  -- They're pairs of triples.
 
       tree_pt.stick_bark = VertexArray:new(bark_pts, 'triangle strip')
+      --]]
     end
   end
 end
@@ -73,6 +92,10 @@ end
 --      time that we provide the point data.
 
 local function add_joint_bark(tree)
+  if tree.bark == nil then tree.bark = {} end
+  if tree.bark.pts == nil then tree.bark.pts = {} end
+  local bark_pts = tree.bark.pts
+
   for _, tree_pt in pairs(tree) do
     if tree_pt.kind == 'parent' then
 
@@ -108,7 +131,6 @@ local function add_joint_bark(tree)
       bot_pts[#bot_pts + 1] = bot_pts[1]
 
       -- Add triangles until we've covered the joint.
-      local bark_pts = {}
       local top_idx, bot_idx = 1, 1
       repeat
 
@@ -131,10 +153,7 @@ local function add_joint_bark(tree)
         end
       until top_idx == #top_pts and bot_idx == #bot_pts
 
-      -- TODO NEXT
-      --           *. Rendering is inefficient in that it makes many more gl
-      --              calls than necessary - likewise for triangle strips; fix.
-      tree_pt.joint_bark = VertexArray:new(bark_pts, 'triangles')
+      -- tree_pt.joint_bark = VertexArray:new(bark_pts, 'triangles')
     end
   end
 end
@@ -151,6 +170,7 @@ function bark.add_bark(tree)
   -- Add the bark.
   add_stick_bark(tree)
   add_joint_bark(tree)
+  tree.bark.v_array = VertexArray:new(tree.bark.pts, 'triangles')
 end
 
 
