@@ -31,6 +31,8 @@ static GLint    normal_xform_loc;
 static vertex_array__TransformCallback          mvp_callback = NULL;
 static vertex_array__TransformCallback normal_xform_callback = NULL;
 
+static Array all_v_arrays = NULL;
+
 typedef enum {
   mode_triangle_strip,
   mode_triangles
@@ -52,6 +54,13 @@ enum {
   normal
 };
 
+
+// Internal: Track all known VertexArray instances.
+
+static void add_vertex_array(VertexArray *v_array) {
+  if (all_v_arrays == NULL) all_v_arrays = array__new(8, sizeof(VertexArray*));
+  array__new_val(all_v_arrays, VertexArray*) = v_array;
+}
 
 
 // Internal: OpenGL utility code.
@@ -201,6 +210,7 @@ static int vertex_array__new(lua_State *L) {
   // Set up the C data.
   v_array->draw_mode = draw_mode;
   gl_setup_new_vertex_array(v_array, v_pts);
+  add_vertex_array(v_array);
 
   glhelp__error_check;
 
@@ -261,6 +271,39 @@ static int vertex_array__setup_drawing(lua_State *L) {
 
   return 0;  // --> 0 Lua return values
 }
+
+// Lua C function.
+// Expected parameters: none.
+static int vertex_array__draw_all(lua_State *L) {
+
+  // Prepare for OpenGL drawing.
+  glUseProgram(program);
+  mvp_callback(mvp_loc);
+  normal_xform_callback(normal_xform_loc);
+
+  // Execute drawing.
+  array__for(VertexArray**, v_array, all_v_arrays, i) {
+
+    GLenum mode;
+    switch((*v_array)->draw_mode) {
+      case mode_triangle_strip:
+        mode = GL_TRIANGLE_STRIP;
+        break;
+      case mode_triangles:
+        mode = GL_TRIANGLES;
+        break;
+      default:
+        assert(0);
+    }
+    glBindVertexArray((*v_array)->vao);
+    glDrawArrays(mode,                  // mode
+                 0,                     // start
+                 (*v_array)->num_pts);  // count
+  }
+
+  return 0;  // --> 0 Lua return values
+}
+
 
 // Lua C function.
 // Expected parameters:
@@ -333,6 +376,7 @@ extern "C" void vertex_array__load_lib(lua_State *L) {
   static const struct luaL_Reg lib[] = {
     {"new", vertex_array__new},
     {"setup_drawing", vertex_array__setup_drawing},
+    {"draw_all", vertex_array__draw_all},
     {NULL, NULL}};
   luaL_newlib(L, lib);              // --> stack = [.., VertexArray]
   lua_setglobal(L, "VertexArray");  // --> stack = [..]

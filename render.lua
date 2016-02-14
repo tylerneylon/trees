@@ -77,8 +77,11 @@ end
 
 -- This is expected to be called once per render cycle.
 function render.draw()
-  lines.draw_all()
+  -- lines.draw_all()
 
+  VertexArray:draw_all()
+
+  --[[
   VertexArray:setup_drawing()
   for _, tree_pt in pairs(tree) do
     -- TODO When bark generation is done, assert that every non-leaf point has
@@ -87,9 +90,10 @@ function render.draw()
       tree_pt.stick_bark:draw_without_setup()
     end
     if tree_pt.joint_bark then
-      tree_pt.joint_bark:draw_without_setup()
+      -- tree_pt.joint_bark:draw_without_setup()
     end
   end
+  --]]
 end
 
 

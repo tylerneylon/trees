@@ -893,7 +893,7 @@ extern "C" {
     //model = mat4(1.0);  // The identity matrix.
     view  = lookAt(vec3(4.0, 4.0, 2.0), vec3(0.0), vec3(0.0, 1.0, 0.0));
     
-    printf("num_pts=%d\n", num_pts);
+    printf("C: num_pts=%d\n", num_pts);
     
     if (false) {
       printf("branch_pt triples:\n");

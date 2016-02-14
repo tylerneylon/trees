@@ -188,6 +188,9 @@ function make_tree.make()
   local tree = add_to_tree(tree_add_params)
   rings.add_rings(tree)
   bark.add_bark(tree)
+
+  print('Lua: num_pts=' .. #tree)
+
   return tree
 end
 
