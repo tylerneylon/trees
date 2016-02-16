@@ -71,6 +71,7 @@ end
 
 -- This is expected to be called once at program startup.
 function render.init()
+  -- TODO NEXT Avoid creating a C-based tree if we're creating one in Lua.
   tree = make_tree.make()
   setup_lines()
 end
@@ -89,13 +90,11 @@ function render.draw()
   --[[
   VertexArray:setup_drawing()
   for _, tree_pt in pairs(tree) do
-    -- TODO When bark generation is done, assert that every non-leaf point has
-    --      stick_bark or joint_bark, as appropriate.
     if tree_pt.stick_bark then
       tree_pt.stick_bark:draw_without_setup()
     end
     if tree_pt.joint_bark then
-      -- tree_pt.joint_bark:draw_without_setup()
+      tree_pt.joint_bark:draw_without_setup()
     end
   end
   --]]

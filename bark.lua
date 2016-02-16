@@ -88,9 +88,6 @@ local function add_stick_bark(tree)
   end
 end
 
--- TODO Enable us to specify the drawing mode for a vertex array at the same
---      time that we provide the point data.
-
 local function add_joint_bark(tree)
   if tree.bark == nil then tree.bark = {} end
   if tree.bark.pts == nil then tree.bark.pts = {} end
@@ -106,9 +103,6 @@ local function add_joint_bark(tree)
           table.insert(top_pts, kid.ring[i])
         end
       end
-
-      -- TODO Consider factoring out some code between what's next and
-      --      add_stick_bark.
 
       -- Set up bot_pts to have the points of tree_pt.ring, but with a
       -- carefully-chosen first point.
