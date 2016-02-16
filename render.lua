@@ -71,7 +71,6 @@ end
 
 -- This is expected to be called once at program startup.
 function render.init()
-  -- TODO NEXT Avoid creating a C-based tree if we're creating one in Lua.
   tree = make_tree.make()
   setup_lines()
 end

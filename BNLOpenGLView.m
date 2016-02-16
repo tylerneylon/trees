@@ -159,7 +159,7 @@ static CVReturn displayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeSt
   // It's important to perform the following init items before setting up the display link
   // since the display link callback assumes the init items have already completed.
   
-  render__init();
+  if (!do_use_lua) render__init();
   
   // Set up and activate a display link.
 	CVDisplayLinkCreateWithActiveCGDisplays(&displayLink);
