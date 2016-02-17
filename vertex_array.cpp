@@ -206,6 +206,8 @@ static int vertex_array__new(lua_State *L) {
       // stack = [v_array, mt]
   lua_setmetatable(L, 1);
       // stack = [v_array]
+  
+  // TODO NEXT Static analyze code and selective cleanup based on that.
 
   // Set up the C data.
   v_array->draw_mode = draw_mode;

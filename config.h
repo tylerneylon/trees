@@ -23,9 +23,6 @@
 // the tree.
 #define    zoom_scale         2.3
 
-// TODO NEXT Investigate why this values aren't having the effects I expect.
-//           Then look into static analyis problems.
-
 #define    branch_size_factor 0.79
 #define    max_ring_pts       8
 
