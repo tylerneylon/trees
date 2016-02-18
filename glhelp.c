@@ -43,6 +43,7 @@ int load_shader(const char *filename, GLenum shader_type, GLuint program) {
     GLchar *log = malloc(log_length + 1);
     glGetShaderInfoLog(shader, log_length, &log_length, log);
     printf("Shader compile log:\n%s\n", log);
+    free(log);
   }
   
   // TODO If we check the log, do we still need to check the compiled flag?

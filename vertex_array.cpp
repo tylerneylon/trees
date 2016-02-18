@@ -191,9 +191,9 @@ static int vertex_array__new(lua_State *L) {
   } else if (strcmp(mode_str, "triangles") == 0) {
     draw_mode = mode_triangles;
   } else {
-    luaL_argerror(L,                                            // state
-                  3,                                            // arg
-                  "Expected 'triangle strip' or 'triangles'");  // msg
+    return luaL_argerror(L,                                            // state
+                         3,                                            // arg
+                         "Expected 'triangle strip' or 'triangles'");  // msg
   }
   lua_settop(L, 0);
       // stack = []
@@ -207,8 +207,6 @@ static int vertex_array__new(lua_State *L) {
   lua_setmetatable(L, 1);
       // stack = [v_array]
   
-  // TODO NEXT Static analyze code and selective cleanup based on that.
-
   // Set up the C data.
   v_array->draw_mode = draw_mode;
   gl_setup_new_vertex_array(v_array, v_pts);
