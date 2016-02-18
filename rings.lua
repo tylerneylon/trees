@@ -120,7 +120,8 @@ local function get_ring_radius(tree_pt, num_pts, angle)
     radius = 0
   elseif tree_pt.kind == 'child' then
     --radius = get_ring_radius(tree_pt.up) + 0.001
-    radius = math.max(get_ring_radius(tree_pt.up), 0.002) * 1.01
+    -- radius = math.max(get_ring_radius(tree_pt.up), 0.002) * 1.01
+    radius = math.max(get_ring_radius(tree_pt.up), 0.0017)
     --[[
     local up = get_up_vec(tree_pt)
     local part_len = 0.7 * up:length() / num_pts
