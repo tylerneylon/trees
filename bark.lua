@@ -88,7 +88,71 @@ local function add_stick_bark(tree)
   end
 end
 
+local function add_joint_piece(tree, tree_pt,
+                               top_pts, top_first, top_last,
+                               bot_pts, bot_first, bot_last)
+
+  if tree.bark == nil then tree.bark = {} end
+  if tree.bark.pts == nil then tree.bark.pts = {} end
+  local bark_pts = tree.bark.pts
+
+  -- TODO NEXT Implement.
+end
+
 local function add_joint_bark(tree)
+  for _, tree_pt in pairs(tree) do
+    if tree_pt.kind == 'parent' then
+
+      -- Set up top_pts with the combined points of the top rings.
+      local top_pts = {}
+      for _, kid in ipairs(tree_pt.kids) do
+        for i = 2, #kid.ring do
+          table.insert(top_pts, kid.ring[i])
+        end
+      end
+
+      -- Set up bot_pts to have the points of tree_pt.ring, but with a
+      -- carefully-chosen first point.
+      local mid_pt = tree_pt.kids[1].ring_meet_mid_pt
+      local bot_idx = {}
+      for i = 1, 2 do
+        local top_ray = tree_pt.kids[i].ring[2] - mid_pt
+        local best_dot, bot_start = -math.huge, nil
+        for i = 1, #tree_pt.ring do
+          local bot_ray = tree_pt.ring[i] - tree_pt.ring_center
+          local d = bot_ray:dot(top_ray)
+          if d > best_dot then
+            best_dot, bot_start = d, i
+          end
+        end
+        bot_idx[i] = bot_start
+      end
+      local bot_pts = {}
+      local num_pts = #tree_pt.ring
+      for i = bot_idx[1], bot_idx[1] + num_pts - 1 do
+        bot_pts[#bot_pts + 1] = tree_pt.ring[(i - 1) % num_pts + 1]
+      end
+
+      -- The letter k indicates the halfway-around index within {top,bot}_pts.
+      local bot_k = (bot_idx[2] - bot_idx[1]) % num_pts + 1
+      local top_k = #tree_pt.kids[1].ring
+
+      -- Augment both top_pts and bot_pts with a repeat of their first point.
+      top_pts[#top_pts + 1] = top_pts[1]
+      bot_pts[#bot_pts + 1] = bot_pts[1]
+
+      -- Add triangles in two pieces: one for each of the top rings.
+      local k = #tree_pt.kids[1].ring
+      add_joint_piece(tree, tree_pt, top_pts, 1, top_k, bot_pts, 1, bot_k)
+      add_joint_piece(tree, tree_pt,
+                      top_pts, top_k, #top_pts,
+                      bot_pts, bot_k, #bot_pts)
+    end
+  end
+end
+
+-- TODO Consider removing this.
+local function old_add_joint_bark(tree)
   if tree.bark == nil then tree.bark = {} end
   if tree.bark.pts == nil then tree.bark.pts = {} end
   local bark_pts = tree.bark.pts

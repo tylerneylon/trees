@@ -21,9 +21,9 @@
 
 // This modifies the view transform by effectively zooming toward or away from
 // the tree.
-#define    zoom_scale         2.3
+#define    zoom_scale         5 /* 2.3 */
 
 #define    branch_size_factor 0.79
-#define    max_ring_pts       8
+#define    max_ring_pts       20 /* 8 */
 
 #define    do_draw_rings      NO

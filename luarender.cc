@@ -128,7 +128,10 @@ extern "C" void luarender__draw(int w, int h) {
   glViewport(0, 0, w, h);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
   aspect_ratio = (float)w / h;
-  if (!is_tree_2d) angle += 0.01;
+
+  // TEMP! TODO Change back. The normal value is 0.01.
+  //if (!is_tree_2d) angle += 0.01;
+  if (!is_tree_2d) angle += 0.001;
   
   // Recompute the mvp matrix.
   mat4 projection = perspective(45.0f, aspect_ratio, 0.1f, 1000.0f);
