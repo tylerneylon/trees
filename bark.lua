@@ -11,6 +11,8 @@ already have rings.
 
 local bark = {}
 
+local Vec3 = require 'Vec3'
+
 
 -- Internal functions.
 
@@ -91,12 +93,54 @@ end
 local function add_joint_piece(tree, tree_pt,
                                top_pts, top_first, top_last,
                                bot_pts, bot_first, bot_last)
+  assert(top_first < top_last and top_last <= #top_pts)
+  assert(bot_first < bot_last and bot_last <= #bot_pts)
 
   if tree.bark == nil then tree.bark = {} end
   if tree.bark.pts == nil then tree.bark.pts = {} end
   local bark_pts = tree.bark.pts
 
-  -- TODO NEXT Implement.
+  local leafward = tree_pt.pt - tree_pt.down.pt
+
+  local pts  = {top_pts,   bot_pts}
+  local idx  = {top_first, bot_first}
+  local last = {top_last,  bot_last}
+  repeat
+
+    append(bark_pts, pts[1][idx[1]])
+    append(bark_pts, pts[2][idx[2]])
+
+    local new_idx = false
+
+    for i = 1, 2 do
+      if idx[i] == last[i] then
+        new_idx = 3 - i
+      end
+    end
+
+    if new_idx == false then
+      -- Find the potential normals so we know which triangle to add.
+      local normals = {}
+      local up = pts[1][idx[1]] - pts[2][idx[2]]
+      for i = 1, 2 do
+        local right = pts[i][idx[i]] - pts[2][idx[2]]
+        table.insert(normals, right:cross(up))
+      end
+      if normals[1]:cross(leafward):dot(normals[2]) > 0 then
+        -- In this case, normal[2] is farther clockwise.
+        new_idx = 2
+      else
+        -- In this case, normal[1] is farther clockwise.
+        new_idx = 1
+      end
+    end
+
+    -- TODO NEXT This is completely failing. Figure out why.
+
+    idx[new_idx] = idx[new_idx] + 1
+    append(bark_pts, pts[new_idx][idx[new_idx]])
+
+  until idx[1] == last[1] and idx[2] == last[2]
 end
 
 local function add_joint_bark(tree)
