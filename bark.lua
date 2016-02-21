@@ -31,6 +31,7 @@ local function add_mod(x, y, m)
 end
 
 local function add_stick_bark(tree)
+
   if tree.bark == nil then tree.bark = {} end
   if tree.bark.pts == nil then tree.bark.pts = {} end
   local bark_pts = tree.bark.pts
@@ -123,7 +124,7 @@ local function add_joint_piece(tree, tree_pt,
       local normals = {}
       local up = pts[1][idx[1]] - pts[2][idx[2]]
       for i = 1, 2 do
-        local right = pts[i][idx[i]] - pts[2][idx[2]]
+        local right = pts[i][idx[i] + 1] - pts[2][idx[2]]
         table.insert(normals, right:cross(up))
       end
       if normals[1]:cross(leafward):dot(normals[2]) > 0 then
@@ -134,8 +135,6 @@ local function add_joint_piece(tree, tree_pt,
         new_idx = 1
       end
     end
-
-    -- TODO NEXT This is completely failing. Figure out why.
 
     idx[new_idx] = idx[new_idx] + 1
     append(bark_pts, pts[new_idx][idx[new_idx]])
