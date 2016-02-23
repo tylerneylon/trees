@@ -18,6 +18,7 @@
 #define    is_tree_2d         NO
 
 #define    max_tree_height    10
+#define    min_tree_height     7
 
 // This modifies the view transform by effectively zooming toward or away from
 // the tree.

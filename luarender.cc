@@ -69,6 +69,7 @@ static void send_normal_xform(GLint transform_loc) {
     lua_setglobal(L, #name);
 
 static void set_lua_config_constants() {
+  set_lua_global_num(min_tree_height);
   set_lua_global_num(max_tree_height);
   set_lua_global_num(branch_size_factor);
   set_lua_global_num(max_ring_pts);
@@ -120,6 +121,7 @@ extern "C" void luarender__init() {
   
   // Any one-time OpenGL setup.
   glEnable(GL_DEPTH_TEST);
+  glClearColor(1, 1, 1, 1);  // White.
 }
 
 extern "C" void luarender__draw(int w, int h) {

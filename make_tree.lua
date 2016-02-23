@@ -123,12 +123,17 @@ local function add_to_tree(args, tree)
 
   local subtree_args = {
     min_len       = args.min_len,
-    max_recursion = args.max_recursion - 1
+    avg_len       = args.avg_len * branch_size_factor,
+    origin        = args.origin + len * args.direction,
+    parent        = tree[#tree],
+    max_recursion = args.max_recursion - 1,
+    min_recursion = args.min_recursion - 1
   }
 
-  subtree_args.avg_len = args.avg_len * branch_size_factor
-  subtree_args.origin  = args.origin + len * args.direction
-  subtree_args.parent  = tree[#tree]
+  -- Allow early cutoffs based on min_recursion.
+  if args.min_recursion <= 0 and math.random() < 0.3 then
+    return
+  end
 
   -- It's not obvious that the code below does a good job choosing random branch
   -- directions. The seemingly weak point is that arbit_dir and the first value
@@ -179,7 +184,8 @@ function make_tree.make()
     direction     = Vec3:new(0, 1, 0),
     avg_len       = 0.5,
     min_len       = 0.01,
-    max_recursion = max_tree_height
+    max_recursion = max_tree_height,
+    min_recursion = min_tree_height
   }
 
   -- TEMP NOTE: The tree table can hold all the data previously held in
