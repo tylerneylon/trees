@@ -46,6 +46,12 @@ all-positive coordinates are in the right hyper-sector of space, and a
 projection of any such point onto the sphere will be inside the spherical
 triangle we have in mind.
 
+It's also good to note that we can keep an explicit list of triangles as we go.
+Otherwise, given just a list of spherical points, I think it may be a challenge
+to choose a triangulation of them; or, at least, such an algorithm is not
+obvious to me and not necessary with this approach if we track the list as we
+go.
+
 To generate a random point on a triangle, we can use a few approaches:
 
 #### Random triangle point appraoch 1
