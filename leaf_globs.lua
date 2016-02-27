@@ -15,8 +15,30 @@ local Vec3 = require 'Vec3'
 
 -- Internal functions.
 
+local function rand_pt_on_unit_sphere()
+  -- Function r() returns a uniform random in [-1, 1).
+  local function r() return math.random() * 2 - 1 end
+  local pt
+  repeat
+    pt  = Vec3:new(r(), r(), r())
+  until pt:length() <= 1
+  pt:normalize()
+  return pt
+end
+
+-- This function expects a sequence of Vec3 points on the unit sphere, and adds
+-- another point which is linearly independent to the existing ones.
 local function add_lin_indep_pt(pts)
-  -- TODO Implement.
+  assert(#pts <= 3)
+  local new_pt, max_dot_prod
+  repeat
+    new_pt = rand_pt_on_unit_sphere()
+    max_dot_prod = 0
+    for _, pt in pairs(pts) do
+      max_dot_prod = math.max(max_dot_prod, math.abs(new_pt:dot(pt)))
+    end
+  until max_dot_prod < 0.9
+  pts[#pts + 1] = new_pt
 end
 
 local function opposite(pt)
@@ -73,13 +95,15 @@ function leaf_globs.make_glob(center, radius, out_triangles)
 
   -- TODO Make the globs more interesting.
 
-  -- TODO Finish this implementation.
-
+  -- Transfer the glob_triangles over to out_triangles, scaling and recentering
+  -- on the way.
   for _, t in pairs(glob_triangles) do
+    for i = 1, 3 do
+      table.insert(out_triangles, t[i] * radius + center)
+    end
   end
 
-
-
+  return out_triangles
 end
 
 
