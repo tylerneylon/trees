@@ -47,7 +47,14 @@ local function opposite(pt)
 end
 
 local function rand_pt_in_triangle(t)
-  -- TODO Implement.
+  -- Choose random barycentric coordinates: y1, y2, y3.
+  -- https://en.wikipedia.org/wiki/Barycentric_coordinate_system
+  -- TODO Either prove or empirically investigate the correctness of this alg.
+  local x1, x2 = math.random(), math.random()
+  if x2 < x1 then x1, x2 = x2, x1 end  -- Sort x1, x2.
+  local y1, y2, y3 = x1, x2 - x1, 1 - x2
+
+  return t[1] * y1 + t[2] * y2 + t[3] * t3
 end
 
 
@@ -71,7 +78,7 @@ function leaf_globs.make_glob(center, radius, out_triangles)
   end
   local opposite_triangle = {}
   for i = 1, 3 do table.insert(opposite_triangle, opposite(init_pts[i])) end
-  table.insert(init_pts, rand_pt_in_triangle(opposite_triangle))
+  table.insert(init_pts, rand_pt_in_triangle(opposite_triangle):normalize())
 
   -- This is a sequence of triangles. Each triangle is a triple of Vec3 points,
   -- ordered counterclockwise when viewed from the outside.
