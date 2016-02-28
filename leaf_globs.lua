@@ -8,8 +8,6 @@ A module to build leaf globs.
 
 local leaf_globs = {}
 
--- TODO Are these both needed?
-local Mat3 = require 'Mat3'
 local Vec3 = require 'Vec3'
 
 
@@ -29,7 +27,7 @@ end
 -- This function expects a sequence of Vec3 points on the unit sphere, and adds
 -- another point which is linearly independent to the existing ones.
 local function add_lin_indep_pt(pts)
-  assert(#pts <= 3)
+  assert(#pts <= 2)
   local new_pt, max_dot_prod
   repeat
     new_pt = rand_pt_on_unit_sphere()
@@ -47,9 +45,15 @@ local function opposite(pt)
 end
 
 local function rand_pt_in_triangle(t)
+  assert(#t == 3)
+  for i = 1, 3 do assert(getmetatable(t[i]) == Vec3) end
+
   -- Choose random barycentric coordinates: y1, y2, y3.
   -- https://en.wikipedia.org/wiki/Barycentric_coordinate_system
-  -- TODO Either prove or empirically investigate the correctness of this alg.
+  -- Mini-proof of correctness: this isometrically maps the triangle
+  -- 0 <= x2 < x1 < 1 into the triangle 0 <= x1 <= x2 < 1, and the mapping from
+  -- that last triangle onto the target of the barycentric coordinates is also
+  -- uniform; for intuition consider target tri with pts (0, 0) (1, 0) & (0, 1).
   local x1, x2 = math.random(), math.random()
   if x2 < x1 then x1, x2 = x2, x1 end  -- Sort x1, x2.
   local y1, y2, y3 = x1, x2 - x1, 1 - x2
@@ -67,6 +71,8 @@ end
 -- Outputs: a sequence table with a flat vertex array of triangle corners
 -- The output is designed to be usable as an input to VertexArray:new.
 function leaf_globs.make_glob(center, radius, out_triangles)
+  assert(getmetatable(center) == Vec3)
+  assert(type(radius) == 'number')
   out_triangles = out_triangles or {}
 
   -- This will be a sequence of Vec3 points on the unit sphere. We'll try to
