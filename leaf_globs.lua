@@ -44,6 +44,12 @@ local function opposite(pt)
   return pt * -1
 end
 
+local function normal(t)
+  local delta1 = t[2] - t[1]
+  local delta2 = t[3] - t[2]
+  return delta1:cross(delta2):normalize()
+end
+
 local function rand_pt_in_triangle(t)
   assert(#t == 3)
   for i = 1, 3 do assert(getmetatable(t[i]) == Vec3) end
@@ -58,7 +64,7 @@ local function rand_pt_in_triangle(t)
   if x2 < x1 then x1, x2 = x2, x1 end  -- Sort x1, x2.
   local y1, y2, y3 = x1, x2 - x1, 1 - x2
 
-  return t[1] * y1 + t[2] * y2 + t[3] * t3
+  return t[1] * y1 + t[2] * y2 + t[3] * y3
 end
 
 
@@ -119,7 +125,4 @@ function leaf_globs.make_glob(center, radius, out_triangles)
   return out_triangles
 end
 
-
 return leaf_globs
-
-

@@ -133,7 +133,11 @@ extern "C" void luarender__draw(int w, int h) {
 
   // TEMP! TODO Change back. The normal value is 0.01.
   //if (!is_tree_2d) angle += 0.01;
-  if (!is_tree_2d) angle += 0.005;
+  
+  //if (!is_tree_2d) angle += 0.0008;  // Super slow.
+  if (!is_tree_2d) angle += 0.005;   // Good speed.
+  //if (!is_tree_2d) angle += 0.2;     // Super fast.
+
   
   // Recompute the mvp matrix.
   mat4 projection = perspective(45.0f, aspect_ratio, 0.1f, 1000.0f);

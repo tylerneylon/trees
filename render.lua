@@ -21,6 +21,10 @@ else
   make_tree = require 'make_tree'
 end
 
+-- TEMP
+local leaf_globs = require 'leaf_globs'
+local Vec3       = require 'Vec3'
+
 
 -- Internal globals.
 
@@ -73,6 +77,10 @@ end
 function render.init()
   tree = make_tree.make()
   setup_lines()
+
+  -- TEMP
+  glob = leaf_globs.make_glob(Vec3:new(0, 0, 0), 1)
+  glob_array = VertexArray:new(glob, 'triangles')
 end
 
 -- This is expected to be called once per render cycle.
@@ -80,6 +88,9 @@ function render.draw()
   -- lines.draw_all()
 
   tree.bark.v_array:draw()
+
+  -- TEMP
+  glob_array:draw()
 
   -- Below is an old way to draw things. It was using a ton of cpu cycles
   -- because the OpenGL driver takes time to handle this many draw calls in a

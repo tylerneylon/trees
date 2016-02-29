@@ -94,7 +94,8 @@ function Vec3:__mul(other)
   elseif type(self) == 'number' and getmetatable(other) == Vec3 then
     return Vec3:new(self * other[1], self * other[2], self * other[3])
   else
-    assert(false, "Unexpected case: Vec3 mult without a Vec3!")
+    -- Error level 2 indicates this is the caller's fault. Which it is.
+    error('Unexpected case: Vec3 mult without a Vec3!', 2)
   end
 end
 
