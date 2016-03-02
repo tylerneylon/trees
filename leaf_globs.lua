@@ -13,6 +13,14 @@ local Vec3 = require 'Vec3'
 
 -- Internal functions.
 
+-- This expects two sequence tables in `t` and `suffix.
+-- It appends the contents of `suffix` to the end of `t`.
+local function append(t, suffix)
+  for _, val in ipairs(suffix) do
+    table.insert(t, val)
+  end
+end
+
 local function rand_pt_on_unit_sphere()
   -- Function r() returns a uniform random in [-1, 1).
   local function r() return math.random() * 2 - 1 end
@@ -118,7 +126,7 @@ function leaf_globs.make_glob(center, radius, out_triangles)
   -- on the way.
   for _, t in pairs(glob_triangles) do
     for i = 1, 3 do
-      table.insert(out_triangles, t[i] * radius + center)
+      append(out_triangles, t[i] * radius + center)
     end
   end
 
