@@ -80,7 +80,8 @@ function render.init()
 
   -- TEMP
   glob = leaf_globs.make_glob(Vec3:new(0, 0, 0), 1)
-  glob_array = VertexArray:new(glob, 'triangles')
+  local red = {1, 0, 0}
+  glob_array = VertexArray:new(glob, 'triangles', red)
 end
 
 -- This is expected to be called once per render cycle.

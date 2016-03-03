@@ -1,6 +1,9 @@
 // vertex_array.cpp
 //
 
+// TODO Remove the old draw_all() method. I no longer think this was a great
+//      idea.
+
 #include "vertex_array.h"
 
 extern "C" {
@@ -28,6 +31,7 @@ using namespace glm;
 static GLuint            program;
 static GLint             mvp_loc;
 static GLint    normal_xform_loc;
+static GLint           color_loc;
 static vertex_array__TransformCallback          mvp_callback = NULL;
 static vertex_array__TransformCallback normal_xform_callback = NULL;
 
@@ -45,6 +49,7 @@ typedef struct {
   GLuint normals_vbo;
   int    num_pts;
   Mode   draw_mode;
+  vec3   color;
 } VertexArray;
 
 // Names for vertex attribute indexes in our vertex shader.
@@ -73,6 +78,7 @@ static void gl_init() {
 
   mvp_loc            = glGetUniformLocation(program, "mvp");
   normal_xform_loc   = glGetUniformLocation(program, "normal_xform");
+  color_loc          = glGetUniformLocation(program, "color");
 }
 
 static void set_array_as_buffer_data(Array array) {
@@ -174,8 +180,10 @@ static void luaL_checkindexable(lua_State *L, int narg) {
 }
 
 // Lua C function.
-// Expected parameters: {points table}, draw_mode,
+// Expected parameters: {points table}, draw_mode, [color]
 // where draw_mode is either 'triangle strip' or 'triangles'.
+// The optional color is expected to have the format {R, G, B}, where each color
+// component is a number in the range [0, 1].
 static int vertex_array__new(lua_State *L) {
 
   // Expect the 1st value to be table-like.
@@ -195,6 +203,23 @@ static int vertex_array__new(lua_State *L) {
                          3,                                            // arg
                          "Expected 'triangle strip' or 'triangles'");  // msg
   }
+
+  // Check for the optional color parameter.
+  vec3 color = vec3(0.494, 0.349, 0.204);
+  if (lua_istable(L, 4)) {
+    for (int i = 1; i <= 3; ++i) {
+      lua_rawgeti(L, 4, i);  // Push color[i] on top of the stack.
+        // stack = [self, v_pts, draw_mode, color, .., color[i]]
+      int isnum;
+      color[i - 1] = lua_tonumberx(L, -1, &isnum);
+      if (!isnum) {
+        return luaL_argerror(L, 4, "Expected color to contain numeric values");
+      }
+      lua_pop(L, 1);
+        // stack = [self, v_pts, draw_mode, color, ..]
+    }
+  }
+
   lua_settop(L, 0);
       // stack = []
 
@@ -209,6 +234,7 @@ static int vertex_array__new(lua_State *L) {
   
   // Set up the C data.
   v_array->draw_mode = draw_mode;
+  v_array->color     = color;
   gl_setup_new_vertex_array(v_array, v_pts);
   add_vertex_array(v_array);
 
@@ -341,6 +367,9 @@ static int vertex_array__draw(lua_State *L) {
   glBindVertexArray(v_array->vao);
   mvp_callback(mvp_loc);
   normal_xform_callback(normal_xform_loc);
+  glUniform3fv(color_loc,            // location
+               1,                    // count
+               &v_array->color[0]);  // data
   glDrawArrays(mode,               // mode
                0,                  // start
                v_array->num_pts);  // count
