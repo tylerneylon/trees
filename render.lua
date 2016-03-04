@@ -79,7 +79,9 @@ function render.init()
   setup_lines()
 
   -- TEMP
-  glob = leaf_globs.make_glob(Vec3:new(0, 0, 0), 1)
+  glob = leaf_globs.make_glob(Vec3:new(0, 1.5, 0),  -- center
+                              1.2,                -- radius
+                              8)                 -- num_pts
   local red = {1, 0, 0}
   glob_array = VertexArray:new(glob, 'triangles', red)
 end

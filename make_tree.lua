@@ -204,7 +204,9 @@ end
 -- Initialization.
 
 -- Seed random number generation.
-math.randomseed(os.time())
+-- TEMP
+--math.randomseed(os.time())
+math.randomseed(1)  
 
 
 return make_tree

@@ -10,6 +10,8 @@ local leaf_globs = {}
 
 local Vec3 = require 'Vec3'
 
+-- TEMP
+local dbg = require 'dbg'
 
 -- Internal functions.
 
@@ -19,6 +21,37 @@ local function append(t, suffix)
   for _, val in ipairs(suffix) do
     table.insert(t, val)
   end
+end
+
+local function tri_area(t)
+
+  dbg.pr_val(t)
+
+  assert(type(t) == 'table')
+  assert(#t == 3)
+  assert(getmetatable(t[1]) == Vec3)
+
+  --assert(type(t) == 'table' and #t == 3 and type(t[1]) == 'number')
+
+  -- Calculate the area using Heron's formula.
+
+  -- Find the side lengths.
+  local s = {}
+  for i = 1, 3 do
+    s[i] = (t[i] - t[i % 3 + 1]):length()
+  end
+
+  -- Find the semiperimeter.
+  local sp = (s[1] + s[2] + s[3]) / 2
+
+  return math.sqrt(sp * (sp - s[1]) * (sp - s[2]) * (sp - s[3]))
+end
+
+-- This expects two triangles as input, and returns true when
+-- area(t1) < area(t2).
+local function sort_by_area(t1, t2)
+  assert(type(t1) == 'table' and type(t2) == 'table')
+  return tri_area(t1) < tri_area(t2)
 end
 
 local function rand_pt_on_unit_sphere()
@@ -72,7 +105,52 @@ local function rand_pt_in_triangle(t)
   if x2 < x1 then x1, x2 = x2, x1 end  -- Sort x1, x2.
   local y1, y2, y3 = x1, x2 - x1, 1 - x2
 
+  -- TEMP
+  y1, y2, y3 = 0.3333, 0.3333, 0.3333
+  print('y1, y2, y3 = ' .. y1 .. ', ' .. y2 .. ', ' .. y3)
+
+  print('t values:')
+  for i = 1, 3 do
+    dbg.pr_val(t[i])
+  end
+  print('final val:')
+  dbg.pr_val(t[1] * y1 + t[2] * y2 + t[3] * y3)
+
   return t[1] * y1 + t[2] * y2 + t[3] * y3
+end
+
+-- This expects a sequence of spheric triangles as input, and replaces the last
+-- one with a randomly partitioned version of itself.
+local function replace_last_triangle(triangles)
+
+  -- TEMP
+  print('replace_last_triangle')
+  print('input size = ' .. #triangles)
+
+  assert(type(triangles) == 'table')
+  assert(type(triangles[#triangles]) == 'table')
+
+  local n      = #triangles
+  local old_t  = triangles[n]
+  local new_pt = rand_pt_in_triangle(old_t)
+  new_pt:normalize()
+  -- TEMP
+  triangles[n] = nil
+  for i = 1, 3 do
+    triangles[n] = {old_t[i], old_t[i % 3 + 1], new_pt}
+    n = n + 1
+  end
+
+  print('output size = ' .. #triangles)
+end
+
+local function check_all_unit_vecs(triangles)
+  for _, t in pairs(triangles) do
+    for i = 1, 3 do
+      local len = t[i]:length()
+      assert(math.abs(len - 1) < 0.0001)
+    end
+  end
 end
 
 
@@ -80,13 +158,17 @@ end
 
 -- Inputs: center is a Vec3
 --         radius is a number
+--         num_pts is the number of corner points of the glob, expected >= 4
 --         triangles is an optional sequence table; new triangles
 --                   will be appended to this if it is present
 -- Outputs: a sequence table with a flat vertex array of triangle corners
 -- The output is designed to be usable as an input to VertexArray:new.
-function leaf_globs.make_glob(center, radius, out_triangles)
+function leaf_globs.make_glob(center, radius, num_pts, out_triangles)
   assert(getmetatable(center) == Vec3)
   assert(type(radius) == 'number')
+  assert(type(num_pts) == 'number')
+  assert(num_pts == math.floor(num_pts))
+  assert(num_pts >= 4)
   out_triangles = out_triangles or {}
 
   -- This will be a sequence of Vec3 points on the unit sphere. We'll try to
@@ -120,7 +202,16 @@ function leaf_globs.make_glob(center, radius, out_triangles)
     table.insert(glob_triangles, t)
   end
 
-  -- TODO Make the globs more interesting.
+  -- Break down the triangles if needed.
+  local n = (#glob_triangles - 4) / 2 + 4
+  while n < num_pts do
+    table.sort(glob_triangles, sort_by_area)
+    replace_last_triangle(glob_triangles)
+    n = n + 1
+  end
+
+  -- TEMP
+  --check_all_unit_vecs(glob_triangles)
 
   -- Transfer the glob_triangles over to out_triangles, scaling and recentering
   -- on the way.
