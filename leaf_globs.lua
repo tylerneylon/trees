@@ -123,6 +123,9 @@ end
 -- one with a randomly partitioned version of itself.
 local function replace_last_triangle(triangles)
 
+  assert(false) -- TEMP to ensure this function isn't called anymore
+  -- It was a good function. Well, mostly.
+
   -- TEMP
   print('replace_last_triangle')
   print('input size = ' .. #triangles)
@@ -142,6 +145,55 @@ local function replace_last_triangle(triangles)
   end
 
   print('output size = ' .. #triangles)
+end
+
+local function pt_is_outside_triangle(pt, t)
+  -- TODO
+end
+
+local function sort_counterclockwise_with_up_vec(up)
+  -- TODO
+end
+
+-- This function expects the input to be a sequence of triangles describing a
+-- convex hull with corners on the unit sphere. It further expects that all
+-- shared corner points are represented by the same Lua table. It adds a new
+-- somewhat random point to the convex hull.
+local function add_new_point(triangles)
+
+  -- Choose the largest triangle to help us generate a useful new point.
+  table.sort(triangles, sort_by_area)
+  local big_t = triangles[#triangles]
+
+  -- Choose a new point. This is guaranteed to be outside the current convex
+  -- hull as it, and all old corners, are unit vectors.
+  local pt = rand_pt_in_triangle(big_t):normalize()
+
+  -- Remove the triangles which are no longer in the convex hull, and track the
+  -- points which will need to be re-attached.
+  local pts_to_reattach = {}  -- This is a key set.
+  local i = 1
+  while i <= #triangles do
+    local t = triangles[i]
+    if pt_is_outside_triangle(pt, t) then
+      for j = 1, 3 do pts_to_reattach[t[j]] = true end
+      table.remove(triangles, i)
+    else
+      i = i + 1
+    end
+  end
+
+  -- Sort the pts to reattach in counterclockwise order.
+  local reattach_pts = {}
+  for p in pairs(pts_to_reattach) do table.insert(reattach_pts, p) end
+  table.sort(reattach_pts, sort_counterclockwise_with_up_vec(pt))
+
+  -- Set up new triangles using the sorted reattachment points.
+  local n = #reattach_pts
+  for i = 1, n do
+    local t = {reattach_pts[i], reattach_pts[i % n + 1], pt}
+    table.insert(triangles, t)
+  end
 end
 
 local function check_all_unit_vecs(triangles)
