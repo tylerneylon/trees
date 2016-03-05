@@ -119,6 +119,8 @@ local function rand_pt_in_triangle(t)
   return t[1] * y1 + t[2] * y2 + t[3] * y3
 end
 
+-- TODO Remove the function below once the replacement is done.
+
 -- This expects a sequence of spheric triangles as input, and replaces the last
 -- one with a randomly partitioned version of itself.
 local function replace_last_triangle(triangles)
@@ -147,12 +149,53 @@ local function replace_last_triangle(triangles)
   print('output size = ' .. #triangles)
 end
 
+-- This function expects a Vec3 pt and a sequence of 3 Vec3s representing a
+-- triangle. It returns true iff t is not included in the half-space delineated
+-- by the plane of t that includes the origin.
+-- (I'm not considering edge cases carefully here as I don't expect them as
+-- valid inputs.)
 local function pt_is_outside_triangle(pt, t)
-  -- TODO
+  assert(getmetatable(pt) == Vec3)
+  assert(type(t) == 'table' and #t == 3 and getmetatable(t[1]) == Vec3)
+
+  -- Find the normal of t that points away from the origin.
+  local side1, side2 = t[2] - t[1], t[3] - t[2]
+  local normal       = side1:cross(side2):normalize()
+  local d            = normal:dot(t[1])
+  assert(d > 0)  -- Verify that it points away from the origin.
+
+  -- At this point, every point x inside the triangle's half-space obeys the
+  -- equation <x, normal> <= d.
+  return pt:dot(normal) > d
 end
 
-local function sort_counterclockwise_with_up_vec(up)
-  -- TODO
+local function sort_counterclockwise_with_up_vec(center, up)
+  assert(getmetatable(center) == Vec3)
+  assert(getmetatable(up) == Vec3)
+
+  -- Choose an out vector that is far from linearly dependent with up.
+  local out = Vec3:new(1, 0, 0)
+  if math.abs(up[1]) > math.abs(up[2]) then
+    out = Vec3:new(0, 1, 0)
+  end
+
+  local function is_left_of(x1, x2)
+    local v1, v2 = x1 - center, x2 - center
+    return v1:cross(up):dot(v2) > 0
+  end
+
+  -- This is a closure which is a comparison function between points in R^3.
+  local function cmp(x1, x2, is_subcall)
+    if not is_left_of(x1, x2) then
+      assert(not is_subcall)  -- Verify shallow-only recursion.
+      return not cmp(x2, x1, true)
+    end
+    assert(is_left_of(x1, x2))
+    local bdry_cross = is_left_of(x1, out) and is_left_of(out, x2)
+    return not bdry_cross
+  end
+
+  return cmp
 end
 
 -- This function expects the input to be a sequence of triangles describing a
@@ -186,7 +229,7 @@ local function add_new_point(triangles)
   -- Sort the pts to reattach in counterclockwise order.
   local reattach_pts = {}
   for p in pairs(pts_to_reattach) do table.insert(reattach_pts, p) end
-  table.sort(reattach_pts, sort_counterclockwise_with_up_vec(pt))
+  table.sort(reattach_pts, sort_counterclockwise_with_up_vec(pt, pt))
 
   -- Set up new triangles using the sorted reattachment points.
   local n = #reattach_pts
@@ -255,12 +298,19 @@ function leaf_globs.make_glob(center, radius, num_pts, out_triangles)
   end
 
   -- Break down the triangles if needed.
-  local n = (#glob_triangles - 4) / 2 + 4
+  for n = 4, num_pts do
+    add_new_point(glob_triangles)
+  end
+
+  --[[
+  local n = 4
   while n < num_pts do
-    table.sort(glob_triangles, sort_by_area)
-    replace_last_triangle(glob_triangles)
+    --table.sort(glob_triangles, sort_by_area)
+    add_new_point(glob_triangles)
+    --replace_last_triangle(glob_triangles)
     n = n + 1
   end
+  --]]
 
   -- TEMP
   --check_all_unit_vecs(glob_triangles)
