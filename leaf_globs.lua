@@ -149,6 +149,18 @@ local function replace_last_triangle(triangles)
   print('output size = ' .. #triangles)
 end
 
+local function triangle_is_counterclockwise(t)
+  assert(type(t) == 'table' and #t == 3 and getmetatable(t[1]) == Vec3)
+
+  -- Find the normal of t.
+  local side1, side2 = t[2] - t[1], t[3] - t[2]
+  local normal       = side1:cross(side2):normalize()
+
+  -- The triangle is oriented counterclockwise, as seen from a viewing looking
+  -- toward the origin, when <normal, t[1]> > 0.
+  return normal:dot(t[1]) > 0
+end
+
 -- This function expects a Vec3 pt and a sequence of 3 Vec3s representing a
 -- triangle. It returns true iff t is not included in the half-space delineated
 -- by the plane of t that includes the origin.
@@ -162,6 +174,25 @@ local function pt_is_outside_triangle(pt, t)
   local side1, side2 = t[2] - t[1], t[3] - t[2]
   local normal       = side1:cross(side2):normalize()
   local d            = normal:dot(t[1])
+
+  -- TEMP
+  local function pr_val(name, val)
+    print(name .. ':')
+    dbg.pr_val(val)
+  end
+  if d <= 0 then
+    -- Note: I found the issue that some triangles appear to not be oriented
+    -- properly.
+    print('d <= 0 in pt_is_outside_trinagle')
+    pr_val('pt', pt)
+    pr_val('t', t)
+    pr_val('side1', side1)
+    pr_val('side2', side2)
+    pr_val('normal', normal)
+    pr_val('d', d)
+    os.exit(0)
+  end
+
   assert(d > 0)  -- Verify that it points away from the origin.
 
   -- At this point, every point x inside the triangle's half-space obeys the
@@ -204,6 +235,11 @@ end
 -- somewhat random point to the convex hull.
 local function add_new_point(triangles)
 
+  -- TEMP
+  print('')
+  print('add_new_point')
+  print('')
+
   -- Choose the largest triangle to help us generate a useful new point.
   table.sort(triangles, sort_by_area)
   local big_t = triangles[#triangles]
@@ -235,6 +271,14 @@ local function add_new_point(triangles)
   local n = #reattach_pts
   for i = 1, n do
     local t = {reattach_pts[i], reattach_pts[i % n + 1], pt}
+
+    -- TEMP
+    -- TODO NEXT Debug that this ever happens.
+    if not triangle_is_counterclockwise(t) then
+      print('Error: created a non-counterclockwise triangle!')
+      os.exit(0)
+    end
+
     table.insert(triangles, t)
   end
 end
@@ -298,8 +342,11 @@ function leaf_globs.make_glob(center, radius, num_pts, out_triangles)
   end
 
   -- Break down the triangles if needed.
-  for n = 4, num_pts do
+  -- I could have used a for loop here, but I believe this code is clearer.
+  local n = 4
+  while n < num_pts do
     add_new_point(glob_triangles)
+    n = n + 1
   end
 
   --[[
