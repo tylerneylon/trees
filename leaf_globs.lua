@@ -25,13 +25,9 @@ end
 
 local function tri_area(t)
 
-  dbg.pr_val(t)
-
   assert(type(t) == 'table')
   assert(#t == 3)
   assert(getmetatable(t[1]) == Vec3)
-
-  --assert(type(t) == 'table' and #t == 3 and type(t[1]) == 'number')
 
   -- Calculate the area using Heron's formula.
 
@@ -106,7 +102,7 @@ local function rand_pt_in_triangle(t)
   local y1, y2, y3 = x1, x2 - x1, 1 - x2
 
   -- TEMP
-  y1, y2, y3 = 0.3333, 0.3333, 0.3333
+  -- y1, y2, y3 = 0.3333, 0.3333, 0.3333
   print('y1, y2, y3 = ' .. y1 .. ', ' .. y2 .. ', ' .. y3)
 
   print('t values:')
@@ -225,9 +221,11 @@ local function sort_counterclockwise_with_up_vec(center, up)
     out = Vec3:new(0, 1, 0)
   end
 
+  --[[
   print('out:')
   dbg.pr_val(out)
   print('convert(out) = ' .. dbg.val_to_str(convert(out)))
+  --]]
 
   local function is_left_of(x1, x2, print)
     local v1, v2 = x1 - center, x2 - center
@@ -241,14 +239,14 @@ local function sort_counterclockwise_with_up_vec(center, up)
   -- This is a closure which is a comparison function between points in R^3.
   local function cmp(x1, x2, is_subcall)
 
-    -- TODO NEXT Drop the point redundancy in reattach_pts which is causing the
-    --           following assert to fail.
-    -- TEMP
-    -- assert(x1 ~= x2)
+    -- Interestingly, even if there is no redundancy in the table being sorted,
+    -- I've seen calls to cmp with x1 == x2. So it seems good to make sure the
+    -- code correctly handles that case.
 
     local normal_print = print
     local num_calls_made = 0
     local function print(s, is_last_call)
+      do return end
       local prefix = (is_subcall and '    ' or '')
       if num_calls_made == 0 then
         prefix = prefix .. '/ '
@@ -293,14 +291,20 @@ end
 -- somewhat random point to the convex hull.
 local function add_new_point(triangles)
 
+  --print('[[0]]')
+
+  --[[
   -- TEMP
   print('')
   print('add_new_point')
   print('')
+  --]]
 
   -- Choose the largest triangle to help us generate a useful new point.
   table.sort(triangles, sort_by_area)
   local big_t = triangles[#triangles]
+
+  --print('[[1]]')
 
   -- Choose a new point. This is guaranteed to be outside the current convex
   -- hull as it, and all old corners, are unit vectors.
@@ -320,11 +324,26 @@ local function add_new_point(triangles)
     end
   end
 
+  --print('[[2]]')
+
   -- Sort the pts to reattach in counterclockwise order.
   local reattach_pts = {}
   for p in pairs(pts_to_reattach) do table.insert(reattach_pts, p) end
+
+  --[[
+  -- TEMP
+  print('')
+  print('#reattach_pts = ' .. #reattach_pts)
+  print('values:')
+  dbg.pr_val(reattach_pts)
+  print('')
+  --]]
+
   table.sort(reattach_pts, sort_counterclockwise_with_up_vec(pt, pt))
 
+  --print('[[3]]')
+
+  --[[
   -- TEMP
   do
     local out = Vec3:new(1, 0, 0)
@@ -347,6 +366,7 @@ local function add_new_point(triangles)
       --dbg.pr_val(convert(p))
     end
   end
+  --]]
 
   -- Set up new triangles using the sorted reattachment points.
   local n = #reattach_pts
@@ -371,6 +391,20 @@ local function check_all_unit_vecs(triangles)
       assert(math.abs(len - 1) < 0.0001)
     end
   end
+end
+
+local function num_pts_in_triangles(triangles)
+  local pt_set = {}
+  for _, t in pairs(triangles) do
+    for i = 1, 3 do
+      pt_set[t[i]] = true
+    end
+  end
+  local pt_seq = {}
+  for pt in pairs(pt_set) do
+    pt_seq[#pt_seq + 1] = pt
+  end
+  return #pt_seq
 end
 
 
@@ -422,12 +456,17 @@ function leaf_globs.make_glob(center, radius, num_pts, out_triangles)
     table.insert(glob_triangles, t)
   end
 
+  -- TEMP
+  assert(num_pts_in_triangles(glob_triangles) == 4)
+
   -- Break down the triangles if needed.
   -- I could have used a for loop here, but I believe this code is clearer.
   local n = 4
   while n < num_pts do
     add_new_point(glob_triangles)
     n = n + 1
+    -- TEMP
+    assert(num_pts_in_triangles(glob_triangles) == n)
   end
 
   --[[

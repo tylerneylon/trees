@@ -205,8 +205,10 @@ end
 
 -- Seed random number generation.
 -- TEMP
-math.randomseed(os.time())
-math.randomseed(3)  
+local seed = os.time()
+print('random seed = ' .. seed)
+math.randomseed(seed)
+--math.randomseed(9)  
 
 
 return make_tree
