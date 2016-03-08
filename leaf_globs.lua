@@ -204,26 +204,84 @@ local function sort_counterclockwise_with_up_vec(center, up)
   assert(getmetatable(center) == Vec3)
   assert(getmetatable(up) == Vec3)
 
+  -- TEMP
+  local convert
+  do
+    local out = Vec3:new(1, 0, 0)
+    if math.abs(up[1]) > math.abs(up[2]) then out = Vec3:new(0, 1, 0) end
+    local axis1 = out:cross(up):normalize()
+    local axis2 = up:cross(axis1):normalize()
+
+    -- This converts the input into a 2d version of the new coord system.
+    -- The return value has the format {x, y}.
+    convert = function (p)
+      return {axis1:dot(p), axis2:dot(p)}
+    end
+  end
+
   -- Choose an out vector that is far from linearly dependent with up.
   local out = Vec3:new(1, 0, 0)
   if math.abs(up[1]) > math.abs(up[2]) then
     out = Vec3:new(0, 1, 0)
   end
 
-  local function is_left_of(x1, x2)
+  print('out:')
+  dbg.pr_val(out)
+  print('convert(out) = ' .. dbg.val_to_str(convert(out)))
+
+  local function is_left_of(x1, x2, print)
     local v1, v2 = x1 - center, x2 - center
-    return v1:cross(up):dot(v2) > 0
+    --return v1:cross(up):dot(v2) > 0
+    local x = v1:cross(up):dot(v2) > 0
+    print('is_left_of(' .. dbg.val_to_str(x1) .. ', ' ..
+          dbg.val_to_str(x2) .. ') will return ' .. tostring(x))
+    return x
   end
 
   -- This is a closure which is a comparison function between points in R^3.
   local function cmp(x1, x2, is_subcall)
-    if not is_left_of(x1, x2) then
+
+    -- TODO NEXT Drop the point redundancy in reattach_pts which is causing the
+    --           following assert to fail.
+    -- TEMP
+    -- assert(x1 ~= x2)
+
+    local normal_print = print
+    local num_calls_made = 0
+    local function print(s, is_last_call)
+      local prefix = (is_subcall and '    ' or '')
+      if num_calls_made == 0 then
+        prefix = prefix .. '/ '
+      elseif is_last_call then
+        prefix = prefix .. '\\ '
+      else
+        prefix = prefix .. '| '
+      end
+      normal_print(prefix .. s)
+      num_calls_made = num_calls_made + 1
+    end
+
+    print('Running cmp(' .. dbg.val_to_str(x1) .. ', ' ..
+          dbg.val_to_str(x2) .. ', ' .. tostring(not not is_subcall) .. ')')
+    print('  converted, those pts are ' .. dbg.val_to_str(convert(x1)) ..
+          ', ' .. dbg.val_to_str(convert(x2)))
+
+    print('Calling is_left_of(x1, x2)')
+    if not is_left_of(x1, x2, print) then
+      -- If both is_left_of(x1, x2) and is_left_of(x2, x1) are false, we must
+      -- have x1 equivalent to x2; then the subcall should return true so that
+      -- the top-level cmp call returns false.
+      if is_subcall then return true end
       assert(not is_subcall)  -- Verify shallow-only recursion.
+      print('Making a subcall')
       return not cmp(x2, x1, true)
     end
-    assert(is_left_of(x1, x2))
-    local bdry_cross = is_left_of(x1, out) and is_left_of(out, x2)
-    return not bdry_cross
+    -- TEMP
+    assert(is_left_of(x1, x2, print))
+    print('Evaling is_left_of(x1, out) and is_left_of(out, x2)')
+    local bdry_cross = is_left_of(x1, out, print) and is_left_of(out, x2, print)
+    print('Returning ' .. tostring(not bdry_cross), true)
+    return bdry_cross
   end
 
   return cmp
@@ -266,6 +324,29 @@ local function add_new_point(triangles)
   local reattach_pts = {}
   for p in pairs(pts_to_reattach) do table.insert(reattach_pts, p) end
   table.sort(reattach_pts, sort_counterclockwise_with_up_vec(pt, pt))
+
+  -- TEMP
+  do
+    local out = Vec3:new(1, 0, 0)
+    if math.abs(pt[1]) > math.abs(pt[2]) then out = Vec3:new(0, 1, 0) end
+    local axis1 = out:cross(pt):normalize()
+    local axis2 = pt:cross(axis1):normalize()
+
+    -- This converts the input into a 2d version of the new coord system.
+    -- The return value has the format {x, y}.
+    local function convert(p)
+      return {axis1:dot(p), axis2:dot(p)}
+    end
+
+    print('')
+    print('reattach_pts, in order:')
+    for _, p in ipairs(reattach_pts) do
+      local a = dbg.val_to_str(p)
+      local b = dbg.val_to_str(convert(p))
+      print(a .. ' -> ' .. b)
+      --dbg.pr_val(convert(p))
+    end
+  end
 
   -- Set up new triangles using the sorted reattachment points.
   local n = #reattach_pts

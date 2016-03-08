@@ -80,8 +80,8 @@ function render.init()
 
   -- TEMP
   glob = leaf_globs.make_glob(Vec3:new(0, 1.5, 0),  -- center
-                              1.2,                -- radius
-                              5)                 -- num_pts
+                              1.0,                -- radius
+                              18)                 -- num_pts
   local red = {1, 0, 0}
   glob_array = VertexArray:new(glob, 'triangles', red)
 end
@@ -90,7 +90,8 @@ end
 function render.draw()
   -- lines.draw_all()
 
-  tree.bark.v_array:draw()
+  -- TEMP usually this is drawn!
+  --tree.bark.v_array:draw()
 
   -- TEMP
   glob_array:draw()
