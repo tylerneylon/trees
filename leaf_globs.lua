@@ -10,8 +10,6 @@ local leaf_globs = {}
 
 local Vec3 = require 'Vec3'
 
--- TEMP
-local dbg = require 'dbg'
 
 -- Internal functions.
 
@@ -63,6 +61,7 @@ end
 
 -- This function expects a sequence of Vec3 points on the unit sphere, and adds
 -- another point which is linearly independent to the existing ones.
+-- TODO This doesn't actually guarantee independence when #pts == 2. Fix.
 local function add_lin_indep_pt(pts)
   assert(#pts <= 2)
   local new_pt, max_dot_prod
@@ -101,48 +100,10 @@ local function rand_pt_in_triangle(t)
   if x2 < x1 then x1, x2 = x2, x1 end  -- Sort x1, x2.
   local y1, y2, y3 = x1, x2 - x1, 1 - x2
 
-  -- TEMP
+  -- Uncomment the following line to always choose the center point.
   -- y1, y2, y3 = 0.3333, 0.3333, 0.3333
-  print('y1, y2, y3 = ' .. y1 .. ', ' .. y2 .. ', ' .. y3)
-
-  print('t values:')
-  for i = 1, 3 do
-    dbg.pr_val(t[i])
-  end
-  print('final val:')
-  dbg.pr_val(t[1] * y1 + t[2] * y2 + t[3] * y3)
 
   return t[1] * y1 + t[2] * y2 + t[3] * y3
-end
-
--- TODO Remove the function below once the replacement is done.
-
--- This expects a sequence of spheric triangles as input, and replaces the last
--- one with a randomly partitioned version of itself.
-local function replace_last_triangle(triangles)
-
-  assert(false) -- TEMP to ensure this function isn't called anymore
-  -- It was a good function. Well, mostly.
-
-  -- TEMP
-  print('replace_last_triangle')
-  print('input size = ' .. #triangles)
-
-  assert(type(triangles) == 'table')
-  assert(type(triangles[#triangles]) == 'table')
-
-  local n      = #triangles
-  local old_t  = triangles[n]
-  local new_pt = rand_pt_in_triangle(old_t)
-  new_pt:normalize()
-  -- TEMP
-  triangles[n] = nil
-  for i = 1, 3 do
-    triangles[n] = {old_t[i], old_t[i % 3 + 1], new_pt}
-    n = n + 1
-  end
-
-  print('output size = ' .. #triangles)
 end
 
 local function triangle_is_counterclockwise(t)
@@ -170,25 +131,6 @@ local function pt_is_outside_triangle(pt, t)
   local side1, side2 = t[2] - t[1], t[3] - t[2]
   local normal       = side1:cross(side2):normalize()
   local d            = normal:dot(t[1])
-
-  -- TEMP
-  local function pr_val(name, val)
-    print(name .. ':')
-    dbg.pr_val(val)
-  end
-  if d <= 0 then
-    -- Note: I found the issue that some triangles appear to not be oriented
-    -- properly.
-    print('d <= 0 in pt_is_outside_trinagle')
-    pr_val('pt', pt)
-    pr_val('t', t)
-    pr_val('side1', side1)
-    pr_val('side2', side2)
-    pr_val('normal', normal)
-    pr_val('d', d)
-    os.exit(0)
-  end
-
   assert(d > 0)  -- Verify that it points away from the origin.
 
   -- At this point, every point x inside the triangle's half-space obeys the
@@ -200,40 +142,15 @@ local function sort_counterclockwise_with_up_vec(center, up)
   assert(getmetatable(center) == Vec3)
   assert(getmetatable(up) == Vec3)
 
-  -- TEMP
-  local convert
-  do
-    local out = Vec3:new(1, 0, 0)
-    if math.abs(up[1]) > math.abs(up[2]) then out = Vec3:new(0, 1, 0) end
-    local axis1 = out:cross(up):normalize()
-    local axis2 = up:cross(axis1):normalize()
-
-    -- This converts the input into a 2d version of the new coord system.
-    -- The return value has the format {x, y}.
-    convert = function (p)
-      return {axis1:dot(p), axis2:dot(p)}
-    end
-  end
-
   -- Choose an out vector that is far from linearly dependent with up.
   local out = Vec3:new(1, 0, 0)
   if math.abs(up[1]) > math.abs(up[2]) then
     out = Vec3:new(0, 1, 0)
   end
 
-  --[[
-  print('out:')
-  dbg.pr_val(out)
-  print('convert(out) = ' .. dbg.val_to_str(convert(out)))
-  --]]
-
   local function is_left_of(x1, x2, print)
     local v1, v2 = x1 - center, x2 - center
-    --return v1:cross(up):dot(v2) > 0
-    local x = v1:cross(up):dot(v2) > 0
-    print('is_left_of(' .. dbg.val_to_str(x1) .. ', ' ..
-          dbg.val_to_str(x2) .. ') will return ' .. tostring(x))
-    return x
+    return v1:cross(up):dot(v2) > 0
   end
 
   -- This is a closure which is a comparison function between points in R^3.
@@ -243,42 +160,16 @@ local function sort_counterclockwise_with_up_vec(center, up)
     -- I've seen calls to cmp with x1 == x2. So it seems good to make sure the
     -- code correctly handles that case.
 
-    local normal_print = print
-    local num_calls_made = 0
-    local function print(s, is_last_call)
-      do return end
-      local prefix = (is_subcall and '    ' or '')
-      if num_calls_made == 0 then
-        prefix = prefix .. '/ '
-      elseif is_last_call then
-        prefix = prefix .. '\\ '
-      else
-        prefix = prefix .. '| '
-      end
-      normal_print(prefix .. s)
-      num_calls_made = num_calls_made + 1
-    end
-
-    print('Running cmp(' .. dbg.val_to_str(x1) .. ', ' ..
-          dbg.val_to_str(x2) .. ', ' .. tostring(not not is_subcall) .. ')')
-    print('  converted, those pts are ' .. dbg.val_to_str(convert(x1)) ..
-          ', ' .. dbg.val_to_str(convert(x2)))
-
-    print('Calling is_left_of(x1, x2)')
-    if not is_left_of(x1, x2, print) then
+    if not is_left_of(x1, x2) then
       -- If both is_left_of(x1, x2) and is_left_of(x2, x1) are false, we must
       -- have x1 equivalent to x2; then the subcall should return true so that
       -- the top-level cmp call returns false.
       if is_subcall then return true end
-      assert(not is_subcall)  -- Verify shallow-only recursion.
-      print('Making a subcall')
       return not cmp(x2, x1, true)
     end
-    -- TEMP
-    assert(is_left_of(x1, x2, print))
-    print('Evaling is_left_of(x1, out) and is_left_of(out, x2)')
+
+    assert(is_left_of(x1, x2))
     local bdry_cross = is_left_of(x1, out, print) and is_left_of(out, x2, print)
-    print('Returning ' .. tostring(not bdry_cross), true)
     return bdry_cross
   end
 
@@ -291,20 +182,9 @@ end
 -- somewhat random point to the convex hull.
 local function add_new_point(triangles)
 
-  --print('[[0]]')
-
-  --[[
-  -- TEMP
-  print('')
-  print('add_new_point')
-  print('')
-  --]]
-
   -- Choose the largest triangle to help us generate a useful new point.
   table.sort(triangles, sort_by_area)
   local big_t = triangles[#triangles]
-
-  --print('[[1]]')
 
   -- Choose a new point. This is guaranteed to be outside the current convex
   -- hull as it, and all old corners, are unit vectors.
@@ -324,65 +204,23 @@ local function add_new_point(triangles)
     end
   end
 
-  --print('[[2]]')
-
   -- Sort the pts to reattach in counterclockwise order.
   local reattach_pts = {}
   for p in pairs(pts_to_reattach) do table.insert(reattach_pts, p) end
-
-  --[[
-  -- TEMP
-  print('')
-  print('#reattach_pts = ' .. #reattach_pts)
-  print('values:')
-  dbg.pr_val(reattach_pts)
-  print('')
-  --]]
-
   table.sort(reattach_pts, sort_counterclockwise_with_up_vec(pt, pt))
-
-  --print('[[3]]')
-
-  --[[
-  -- TEMP
-  do
-    local out = Vec3:new(1, 0, 0)
-    if math.abs(pt[1]) > math.abs(pt[2]) then out = Vec3:new(0, 1, 0) end
-    local axis1 = out:cross(pt):normalize()
-    local axis2 = pt:cross(axis1):normalize()
-
-    -- This converts the input into a 2d version of the new coord system.
-    -- The return value has the format {x, y}.
-    local function convert(p)
-      return {axis1:dot(p), axis2:dot(p)}
-    end
-
-    print('')
-    print('reattach_pts, in order:')
-    for _, p in ipairs(reattach_pts) do
-      local a = dbg.val_to_str(p)
-      local b = dbg.val_to_str(convert(p))
-      print(a .. ' -> ' .. b)
-      --dbg.pr_val(convert(p))
-    end
-  end
-  --]]
 
   -- Set up new triangles using the sorted reattachment points.
   local n = #reattach_pts
   for i = 1, n do
     local t = {reattach_pts[i], reattach_pts[i % n + 1], pt}
-
-    -- TEMP
-    -- TODO NEXT Debug that this ever happens.
-    if not triangle_is_counterclockwise(t) then
-      print('Error: created a non-counterclockwise triangle!')
-      os.exit(0)
-    end
-
+    assert(triangle_is_counterclockwise(t))
     table.insert(triangles, t)
   end
 end
+
+-- TODO Debug this weird case:
+-- Random seed = 1457561972
+-- num_pts     = 40
 
 local function check_all_unit_vecs(triangles)
   for _, t in pairs(triangles) do
@@ -456,7 +294,6 @@ function leaf_globs.make_glob(center, radius, num_pts, out_triangles)
     table.insert(glob_triangles, t)
   end
 
-  -- TEMP
   assert(num_pts_in_triangles(glob_triangles) == 4)
 
   -- Break down the triangles if needed.
@@ -465,22 +302,8 @@ function leaf_globs.make_glob(center, radius, num_pts, out_triangles)
   while n < num_pts do
     add_new_point(glob_triangles)
     n = n + 1
-    -- TEMP
     assert(num_pts_in_triangles(glob_triangles) == n)
   end
-
-  --[[
-  local n = 4
-  while n < num_pts do
-    --table.sort(glob_triangles, sort_by_area)
-    add_new_point(glob_triangles)
-    --replace_last_triangle(glob_triangles)
-    n = n + 1
-  end
-  --]]
-
-  -- TEMP
-  --check_all_unit_vecs(glob_triangles)
 
   -- Transfer the glob_triangles over to out_triangles, scaling and recentering
   -- on the way.
