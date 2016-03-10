@@ -59,19 +59,40 @@ local function rand_pt_on_unit_sphere()
   return pt
 end
 
+-- Random seed 1457652274 (with num_pts = 20) produces a somewhat flat shape.
+-- TODO Tweak the random barycentric coordinates to somewhat favor center
+-- points.
+
+local function part_of_pt_orth_to_basis(p, basis)
+  assert(getmetatable(p) == Vec3)
+  assert(type(basis) == 'table')
+  for _, basis_pt in pairs(basis) do
+    assert(getmetatable(basis_pt) == Vec3)
+  end
+
+  for _, basis_pt in pairs(basis) do
+    -- Create a local copy of basis_pt so we don't change the original.
+    local b = Vec3:new(basis_pt):normalize()
+    p = p - b * p:dot(b)
+  end
+
+  return p
+end
+
 -- This function expects a sequence of Vec3 points on the unit sphere, and adds
 -- another point which is linearly independent to the existing ones.
--- TODO This doesn't actually guarantee independence when #pts == 2. Fix.
 local function add_lin_indep_pt(pts)
   assert(#pts <= 2)
-  local new_pt, max_dot_prod
+
+  local new_pt
   repeat
     new_pt = rand_pt_on_unit_sphere()
-    max_dot_prod = 0
-    for _, pt in pairs(pts) do
-      max_dot_prod = math.max(max_dot_prod, math.abs(new_pt:dot(pt)))
-    end
-  until max_dot_prod < 0.9
+    local x = part_of_pt_orth_to_basis(new_pt, pts)
+  until math.abs(x:length()) > 0.5
+  -- Use the following to guarantee that the points are actually fairly close to
+  -- being *dependent*. Possibly useful for testing.
+  --until #pts == 0 or math.abs(x:length()) < 0.4
+
   pts[#pts + 1] = new_pt
 end
 

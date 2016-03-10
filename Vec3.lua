@@ -54,6 +54,11 @@ function Vec3:normalize()
 end
 
 function Vec3:dot(other)
+  if type(other) ~= 'table' then
+    -- Error level 2 indicates this is the caller's fault.
+    error('Expected 2nd arg to be a vector', 2)
+  end
+
   local a, b = self, other
   return a[1] * b[1] + a[2] * b[2] + a[3] * b[3]
 end
