@@ -91,7 +91,7 @@ function render.draw()
   -- lines.draw_all()
 
   -- TEMP usually this is drawn!
-  tree.bark.v_array:draw()
+  --tree.bark.v_array:draw()
 
   -- TEMP
   glob_array:draw()

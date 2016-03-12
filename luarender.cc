@@ -135,7 +135,7 @@ extern "C" void luarender__draw(int w, int h) {
   //if (!is_tree_2d) angle += 0.01;
   
   //if (!is_tree_2d) angle += 0.0008;  // Super slow.
-  if (!is_tree_2d) angle += 0.005;   // Good speed.
+  if (!is_tree_2d) angle += 0.005;   // Good speed. (0.005)
   //if (!is_tree_2d) angle += 0.2;     // Super fast.
 
   

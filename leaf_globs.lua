@@ -59,10 +59,6 @@ local function rand_pt_on_unit_sphere()
   return pt
 end
 
--- Random seed 1457652274 (with num_pts = 20) produces a somewhat flat shape.
--- TODO Tweak the random barycentric coordinates to somewhat favor center
--- points.
-
 local function part_of_pt_orth_to_basis(p, basis)
   assert(getmetatable(p) == Vec3)
   assert(type(basis) == 'table')
@@ -121,8 +117,16 @@ local function rand_pt_in_triangle(t)
   if x2 < x1 then x1, x2 = x2, x1 end  -- Sort x1, x2.
   local y1, y2, y3 = x1, x2 - x1, 1 - x2
 
+  -- Bias the barycentric coordinates toward the middle.
+  local a = (math.max(y1, y2, y3) - 0.3) / 0.7  -- a is in [0, 1].
+  local w = a * a  -- w is in [0, 1], but more likely to be small.
+  y1, y2, y3 = w * y1 + (1 - w) * 0.3,
+               w * y2 + (1 - w) * 0.3,
+               w * y3 + (1 - w) * 0.3
+
   -- Uncomment the following line to always choose the center point.
-  -- y1, y2, y3 = 0.3333, 0.3333, 0.3333
+  --y1, y2, y3 = 0.3333, 0.3333, 0.3333
+  --y1, y2, y3 = 0.1, 0.1, 0.8
 
   return t[1] * y1 + t[2] * y2 + t[3] * y3
 end
@@ -238,10 +242,6 @@ local function add_new_point(triangles)
     table.insert(triangles, t)
   end
 end
-
--- TODO Debug this weird case:
--- Random seed = 1457561972
--- num_pts     = 40
 
 local function check_all_unit_vecs(triangles)
   for _, t in pairs(triangles) do
