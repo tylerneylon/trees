@@ -337,4 +337,21 @@ function leaf_globs.make_glob(center, radius, num_pts, out_triangles)
   return out_triangles
 end
 
+function leaf_globs.add_leaves(tree)
+  local globs = {}
+
+  for _, tree_pt in pairs(tree) do
+    if tree_pt.kind == 'leaf' then
+      if math.random() < 0.4 then
+        leaf_globs.make_glob(tree_pt.pt, 0.11, 25, globs)
+      end
+    end
+  end
+
+  local green = {0, 0.6, 0}
+  tree.leaves = VertexArray:new(globs, 'triangles', green)
+
+  return globs
+end
+
 return leaf_globs

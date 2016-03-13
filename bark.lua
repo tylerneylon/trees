@@ -271,8 +271,8 @@ function bark.add_bark(tree)
   -- Add the bark.
   add_stick_bark(tree)
   add_joint_bark(tree)
-  local yellow = {1, 1, 0}
-  tree.bark.v_array = VertexArray:new(tree.bark.pts, 'triangles', yellow)
+  --local yellow = {1, 1, 0}
+  tree.bark.v_array = VertexArray:new(tree.bark.pts, 'triangles')
 end
 
 

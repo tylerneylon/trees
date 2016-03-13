@@ -34,8 +34,9 @@ local make_tree = {}
 
 -- Requires.
 
-local bark  = require 'bark'
-local rings = require 'rings'
+local bark       = require 'bark'
+local leaf_globs = require 'leaf_globs'
+local rings      = require 'rings'
 
 local Mat3  = require 'Mat3'
 local Vec3  = require 'Vec3'
@@ -194,6 +195,7 @@ function make_tree.make()
   local tree = add_to_tree(tree_add_params)
   rings.add_rings(tree)
   bark.add_bark(tree)
+  leaf_globs.add_leaves(tree)
 
   print('Lua: num_pts=' .. #tree)
 

@@ -79,11 +79,13 @@ function render.init()
   setup_lines()
 
   -- TEMP
+  --[[
   glob = leaf_globs.make_glob(Vec3:new(0, 1.5, 0),  -- center
                               0.4,                  -- radius
                               20)                   -- num_pts
   local red = {1, 0, 0}
   glob_array = VertexArray:new(glob, 'triangles', red)
+  --]]
 end
 
 -- This is expected to be called once per render cycle.
@@ -91,10 +93,12 @@ function render.draw()
   -- lines.draw_all()
 
   -- TEMP usually this is drawn!
-  --tree.bark.v_array:draw()
+  tree.bark.v_array:draw()
+
+  tree.leaves:draw()
 
   -- TEMP
-  glob_array:draw()
+  --glob_array:draw()
 
   -- Below is an old way to draw things. It was using a ton of cpu cycles
   -- because the OpenGL driver takes time to handle this many draw calls in a
