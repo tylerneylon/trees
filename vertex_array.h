@@ -19,9 +19,6 @@
 //     v_array:draw_without_setup()
 //   end
 //
-//   -- Finally, one more class method to make drawing even more efficient:
-//   VertexArray:draw_all()
-//
 
 #pragma once
 
