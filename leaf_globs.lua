@@ -337,9 +337,8 @@ function leaf_globs.make_glob(center, radius, num_pts, out_triangles)
   return out_triangles
 end
 
-function leaf_globs.add_leaves(tree)
+function leaf_globs.add_leaves_idea1(tree)
   local globs = {}
-
   for _, tree_pt in pairs(tree) do
     if tree_pt.kind == 'leaf' then
       if math.random() < 0.4 then
@@ -352,6 +351,37 @@ function leaf_globs.add_leaves(tree)
   tree.leaves = VertexArray:new(globs, 'triangles', green)
 
   return globs
+end
+
+function leaf_globs.add_leaves_idea2(tree)
+  local globs = {}
+  for _, tree_pt in pairs(tree) do
+    if not tree_pt.has_glob and tree_pt.kind == 'parent' then
+      if tree_pt.kids[1].up.kind == 'leaf' and
+         tree_pt.kids[2].up.kind == 'leaf' then
+
+        -- Find a good radius for this leaf glob.
+        local r = 0
+        for i = 1, 2 do
+          local d = (tree_pt.kids[i].up.pt - tree_pt.pt):length()
+          if d > r then r = d end
+        end
+        r = r * 1.2
+
+        -- Set up the glob.
+        leaf_globs.make_glob(tree_pt.pt, r, 25, globs)
+      end
+    end
+  end
+
+  local green = {0, 0.6, 0}
+  tree.leaves = VertexArray:new(globs, 'triangles', green)
+
+  return globs
+end
+
+function leaf_globs.add_leaves(tree)
+  return leaf_globs.add_leaves_idea2(tree)
 end
 
 return leaf_globs
