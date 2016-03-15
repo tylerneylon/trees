@@ -266,6 +266,35 @@ local function num_pts_in_triangles(triangles)
   return #pt_seq
 end
 
+-- This expects a tree_pt as input, and returns:
+-- max_num_edges, max_distance
+-- as output, where max_distance is a Euclidean distance.
+local function max_dist_to_leaf(t)
+  if t.max_edges_to_leaf then
+    return t.max_edges_to_leaf, t.max_dist_to_leaf
+  end
+
+  if t.kind == 'leaf' then
+    t.max_edges_to_leaf, t.max_dist_to_leaf = 0, 0
+  elseif t.kids then
+    local num_edges, distances = {}, {}
+    for i = 1, 2 do
+      num_edges[i], distances[i] = max_dist_to_leaf(t.kids[i])
+    end
+
+    t.max_edges_to_leaf, t.max_dist_to_leaf =
+        math.max(num_edges[1], num_edges[2]),
+        math.max(distances[1], distances[2])
+  else
+    assert(t.up)
+    local num_edges, distance = max_dist_to_leaf(t.up)
+    local delta = (t.up.pt - t.pt):length()
+    t.max_edges_to_leaf, t.max_dist_to_leaf = num_edges + 1, distance + delta
+  end
+
+  return t.max_edges_to_leaf, t.max_dist_to_leaf
+end
+
 
 -- Public functions.
 
@@ -369,7 +398,25 @@ function leaf_globs.add_leaves_idea2(tree)
         r = r * 1.2
 
         -- Set up the glob.
-        leaf_globs.make_glob(tree_pt.pt, r, 25, globs)
+        leaf_globs.make_glob(tree_pt.pt, r, 30, globs)
+      end
+    end
+  end
+
+  local green = {0, 0.6, 0}
+  tree.leaves = VertexArray:new(globs, 'triangles', green)
+
+  return globs
+end
+
+function leaf_globs.add_leaves_idea2_v2(tree)
+  local globs = {}
+  for _, tree_pt in pairs(tree) do
+    if not tree_pt.has_glob and tree_pt.kind == 'parent' then
+      local num_edges, distance = max_dist_to_leaf(tree_pt)
+      if num_edges == 3 then
+        local r = distance * 1.2  -- Add a small buffer distance.
+        leaf_globs.make_glob(tree_pt.pt, r, 30, globs)
       end
     end
   end
@@ -381,7 +428,7 @@ function leaf_globs.add_leaves_idea2(tree)
 end
 
 function leaf_globs.add_leaves(tree)
-  return leaf_globs.add_leaves_idea2(tree)
+  return leaf_globs.add_leaves_idea2_v2(tree)
 end
 
 return leaf_globs

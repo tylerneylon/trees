@@ -141,7 +141,16 @@ extern "C" void luarender__draw(int w, int h) {
   
   // Recompute the mvp matrix.
   mat4 projection = perspective(45.0f, aspect_ratio, 0.1f, 1000.0f);
+
+  // The default, from-high-up, perspective.
+  /*
   mat4 view  = lookAt(vec3(4.0, 4.0, 2.0),   // eye
+                      vec3(0.0),             // at
+                      vec3(0.0, 1.0, 0.0));  // up
+                      */
+
+  // An alternative view from lower down.
+  mat4 view  = lookAt(vec3(7.0, -1.0, 2.0),   // eye
                       vec3(0.0),             // at
                       vec3(0.0, 1.0, 0.0));  // up
 
