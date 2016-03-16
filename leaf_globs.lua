@@ -295,6 +295,57 @@ local function max_dist_to_leaf(t)
   return t.max_edges_to_leaf, t.max_dist_to_leaf
 end
 
+-- This returns all the leaf points, as a sequence, of the given tree.
+local function all_leaf_points(tree)
+
+  local function all_l_pts_leafward(tree_pt, l_pts)
+    if tree_pt.kind == 'leaf' then
+      table.insert(l_pts, tree_pt)
+    elseif tree_pt.kids then
+      all_l_pts_leafward(tree_pt.kids[1], l_pts)
+      all_l_pts_leafward(tree_pt.kids[2], l_pts)
+    else
+      assert(tree_pt.kind == 'child')
+      all_l_pts_leafward(tree_pt.up, l_pts)
+    end
+    return l_pts
+  end
+
+  -- This depends on the fact that the first tree point is the trunk.
+  return all_l_pts_leafward(tree[1], {})
+end
+
+-- This returns tree iff all the leaf points leafward from the given tree point
+-- are already marked as hit_by_glob.
+local function all_leaf_pts_hit(tree_pt)
+  if tree_pt.kind == 'leaf' then
+    return tree_pt.hit_by_glob
+  elseif tree_pt.kids then
+    return all_leaf_pts_hit(tree_pt.kids[1]) and
+           all_leaf_pts_hit(tree_pt.kids[2])
+  else
+    assert(tree_pt.kind == 'child')
+    return all_leaf_pts_hit(tree_pt.up)
+  end
+end
+
+-- This marks every hit leaf point as hit_by_glob, and removes any new hits from
+-- the unhit_l_pts sequence.
+local function update_leaf_pts_hit(unhit_l_pts, center, radius)
+  local effective_r = 0.9 * radius
+  local i = 1
+  while i <= #unhit_l_pts do
+    local l_pt = unhit_l_pts[i]
+    local d    = (center - l_pt.pt):length()
+    if d < effective_r then
+      l_pt.hit_by_glob = true
+      table.remove(unhit_l_pts, i)
+    else
+      i = i + 1
+    end
+  end
+end
+
 
 -- Public functions.
 
@@ -409,6 +460,8 @@ function leaf_globs.add_leaves_idea2(tree)
   return globs
 end
 
+-- This version puts the centers of leaf globs farther down the tree.
+-- Each leaf glob ends up covering multiple leaf points.
 function leaf_globs.add_leaves_idea2_v2(tree)
   local globs = {}
   for _, tree_pt in pairs(tree) do
@@ -427,8 +480,35 @@ function leaf_globs.add_leaves_idea2_v2(tree)
   return globs
 end
 
+-- This version reduces redundancy in leaf globs by trying not to add a new leaf
+-- glob if the corresponding leaf points have already incidentally been covered
+-- by other globs.
+function leaf_globs.add_leaves_idea2_v3(tree)
+  local unhit_l_pts = all_leaf_points(tree)
+  local globs = {}
+  local num_globs_added = 0
+  for _, tree_pt in pairs(tree) do
+    if not tree_pt.has_glob and tree_pt.kind == 'parent' then
+      local num_edges, distance = max_dist_to_leaf(tree_pt)
+      if num_edges == 3 and not all_leaf_pts_hit(tree_pt) then
+        local r = distance * 1.2  -- Add a small buffer distance.
+        leaf_globs.make_glob(tree_pt.pt, r, 30, globs)
+        update_leaf_pts_hit(unhit_l_pts, tree_pt.pt, r)
+        num_globs_added = num_globs_added + 1
+      end
+    end
+  end
+
+  local green = {0, 0.6, 0}
+  tree.leaves = VertexArray:new(globs, 'triangles', green)
+
+  print('Used ' .. num_globs_added .. ' leaf globs.')
+
+  return globs
+end
+
 function leaf_globs.add_leaves(tree)
-  return leaf_globs.add_leaves_idea2_v2(tree)
+  return leaf_globs.add_leaves_idea2_v3(tree)
 end
 
 return leaf_globs
