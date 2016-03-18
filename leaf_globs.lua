@@ -500,7 +500,7 @@ function leaf_globs.add_leaves_idea2_v3(tree)
   end
 
   local green = {0, 0.6, 0}
-  tree.leaves = VertexArray:new(globs, 'triangles', green)
+  tree.leaves = VertexArray:new(globs, 'points', green, 10)
 
   print('Used ' .. num_globs_added .. ' leaf globs.')
 

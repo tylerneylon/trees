@@ -188,6 +188,15 @@ static int vertex_array__new(lua_State *L) {
     draw_mode = mode_triangles;
   } else if (strcmp(mode_str, "points") == 0) {
     draw_mode = mode_points;
+
+    // Check for an optional point size parameter.
+    // HACKY For now, if we see this, we just set the point size immediately.
+    // This breaks horrifically if the user ever does anything that would make
+    // another call to glPointSize with a different value.
+    int isnum;
+    GLfloat point_size = lua_tonumberx(L, 5, &isnum);
+    if (isnum) glPointSize(point_size);
+
   } else {
     const char *msg = "Expected mode to be 'triangle strip', 'triangles', "
                       "or 'points'";
