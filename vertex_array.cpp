@@ -34,7 +34,8 @@ static vertex_array__TransformCallback normal_xform_callback = NULL;
 
 typedef enum {
   mode_triangle_strip,
-  mode_triangles
+  mode_triangles,
+  mode_points
 } Mode;
 
 // State owned by any single VertexArray instance.
@@ -168,7 +169,7 @@ static void luaL_checkindexable(lua_State *L, int narg) {
 
 // Lua C function.
 // Expected parameters: {points table}, draw_mode, [color]
-// where draw_mode is either 'triangle strip' or 'triangles'.
+// where draw_mode is 'triangle strip', 'triangles', or 'points'.
 // The optional color is expected to have the format {R, G, B}, where each color
 // component is a number in the range [0, 1].
 static int vertex_array__new(lua_State *L) {
@@ -185,10 +186,14 @@ static int vertex_array__new(lua_State *L) {
     draw_mode = mode_triangle_strip;
   } else if (strcmp(mode_str, "triangles") == 0) {
     draw_mode = mode_triangles;
+  } else if (strcmp(mode_str, "points") == 0) {
+    draw_mode = mode_points;
   } else {
-    return luaL_argerror(L,                                            // state
-                         3,                                            // arg
-                         "Expected 'triangle strip' or 'triangles'");  // msg
+    const char *msg = "Expected mode to be 'triangle strip', 'triangles', "
+                      "or 'points'";
+    return luaL_argerror(L,     // state
+                         3,     // arg
+                         msg);  // msg
   }
 
   // Check for the optional color parameter.
@@ -236,7 +241,8 @@ static int vertex_array__new(lua_State *L) {
 // error.
 // Expected parameters:
 //   self      = a VertexArray instance.
-//   [mode]    = a string with value 'triangle strip' or 'triangles'
+//   [mode]    = a string with a valid mode value.
+// Valid modes are 'triangle strip', 'triangles', and 'points'.
 static int get_self_and_mode(lua_State *L,
                               VertexArray **v_array,
                               GLenum *mode) {
@@ -250,6 +256,9 @@ static int get_self_and_mode(lua_State *L,
     case mode_triangles:
       *mode = GL_TRIANGLES;
       break;
+    case mode_points:
+      *mode = GL_POINTS;
+      break;
   }
 
   // Allow the user to override the initially set drawing mode -- although this
@@ -260,10 +269,14 @@ static int get_self_and_mode(lua_State *L,
       *mode = GL_TRIANGLE_STRIP;
     } else if (strcmp(mode_name, "triangles") == 0) {
       *mode = GL_TRIANGLES;
+    } else if (strcmp(mode_name, "points") == 0) {
+      *mode = GL_POINTS;
     } else {
-      return luaL_argerror(L,
-                           2,                                            // arg
-                           "Expected 'triangle strip' or 'triangles.");  // msg
+      const char *msg = "Expected mode to be 'triangle strip', 'triangles', "
+                        "or 'points'";
+      return luaL_argerror(L,     // state
+                           2,     // arg
+                           msg);  // msg
     }
   }
 
@@ -288,7 +301,7 @@ static int vertex_array__setup_drawing(lua_State *L) {
 // Lua C function.
 // Expected parameters:
 //   self      = a VertexArray instance.
-//   [mode]    = a string with value 'triangle strip' or 'triangles'
+//   [mode]    = a string with a valid mode value.
 static int vertex_array__draw_without_setup(lua_State *L) {
 
   // Parse arguments.
@@ -308,7 +321,7 @@ static int vertex_array__draw_without_setup(lua_State *L) {
 // Lua C function.
 // Expected parameters:
 //   self      = a VertexArray instance.
-//   [mode]    = a string with value 'triangle strip' or 'triangles'
+//   [mode]    = a string with a valid mode value.
 static int vertex_array__draw(lua_State *L) {
 
   // Parse arguments.

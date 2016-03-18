@@ -9,7 +9,7 @@
 //   v_array = VertexArray:new({flat sequence of vertex points})
 //
 //   -- Call this for every frame where you want to draw the model.
-//   v_array:draw('triangle strip')  -- Or with 'triangles'.
+//   v_array:draw('triangle strip')  -- Or 'triangles' or 'points'.
 //   
 //   -- There is an alternative drawing technique that's more efficient if
 //   -- you're drawing many vertex arrays, assuming they share the same
