@@ -484,6 +484,21 @@ end
 -- glob if the corresponding leaf points have already incidentally been covered
 -- by other globs.
 function leaf_globs.add_leaves_idea2_v3(tree)
+
+  -- TEMP
+  do
+    tree.leaf_pts = all_leaf_points(tree)
+    tree.flat_leaf_pts = {}
+    for _, leaf_pt in pairs(tree.leaf_pts) do
+      append(tree.flat_leaf_pts, leaf_pt.pt)
+    end
+    local yellow = {1, 1, 0}
+    tree.leaf_pt_array = VertexArray:new(tree.flat_leaf_pts,  -- data
+                                         'points',            -- draw mode
+                                         yellow,              -- color
+                                         10)                  -- point size
+  end
+
   local unhit_l_pts = all_leaf_points(tree)
   local globs = {}
   local num_globs_added = 0
@@ -500,7 +515,8 @@ function leaf_globs.add_leaves_idea2_v3(tree)
   end
 
   local green = {0, 0.6, 0}
-  tree.leaves = VertexArray:new(globs, 'points', green, 10)
+  tree.leaves = VertexArray:new(globs, 'triangles', green)
+  --tree.leaves = VertexArray:new(globs, 'points', green, 10)
 
   print('Used ' .. num_globs_added .. ' leaf globs.')
 

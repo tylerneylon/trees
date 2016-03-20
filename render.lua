@@ -92,10 +92,13 @@ end
 function render.draw()
   -- lines.draw_all()
 
+  -- TEMP
+  tree.leaf_pt_array:draw()
+
   -- TEMP usually this is drawn!
   tree.bark.v_array:draw()
 
-  tree.leaves:draw()
+  --tree.leaves:draw()
 
   -- TEMP
   --glob_array:draw()
