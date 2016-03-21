@@ -109,6 +109,15 @@ function Vec3:__mul(other)
   end
 end
 
+function Vec3:__div(other)
+  if getmetatable(self) == Vec3 and type(other) == 'number' then
+    return Vec3:new(self[1] / other, self[2] / other, self[3] / other)
+  else
+    -- Error level 2 indicates this is the caller's fault. Which it is.
+    error('Expected Vec3 to be divided by a number.', 2)
+  end
+end
+
 -- This is a convenient way to achieve something like self = other, but without
 -- changing the identity of self; it also implicitly promotes tables to Vec3s.
 function Vec3:set(other)
