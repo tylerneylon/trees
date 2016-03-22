@@ -93,7 +93,12 @@ function render.draw()
   -- lines.draw_all()
 
   -- TEMP
-  tree.leaf_pt_array:draw()
+  --tree.leaf_pt_array:draw()
+
+  -- TEMP
+  for _, array in pairs(tree.cluster_arrays) do
+    array:draw()
+  end
 
   -- TEMP usually this is drawn!
   tree.bark.v_array:draw()

@@ -10,15 +10,31 @@ local leaf_globs = {}
 
 local Vec3 = require 'Vec3'
 
+-- TEMP ? maybe
+local kmeans = require 'kmeans'
+
 
 -- Internal functions.
 
 -- This expects two sequence tables in `t` and `suffix.
 -- It appends the contents of `suffix` to the end of `t`.
 local function append(t, suffix)
+  if type(suffix) ~= 'table' then table.insert(t, suffix); return end
   for _, val in ipairs(suffix) do
     table.insert(t, val)
   end
+end
+
+-- This accepts an array of arrays and turns it into a flat array of the
+-- indirect elements. Eg, {{1, 2}, {3}, {4, 5, 6}} -> {1, 2, 3, 4, 5, 6}.
+local function flatten(array)
+  if type(array) ~= 'table' then return array end
+
+  local flat_array = {}
+  for _, item in ipairs(array) do
+    append(flat_array, flatten(item))
+  end
+  return flat_array
 end
 
 local function tri_area(t)
@@ -497,6 +513,26 @@ function leaf_globs.add_leaves_idea2_v3(tree)
                                          'points',            -- draw mode
                                          yellow,              -- color
                                          10)                  -- point size
+  end
+
+  -- TEMP
+  do
+    local leaf_pts = {}  -- This will be a [Vec3].
+    -- Convert tree_pt format to just a Vec3.
+    for _, tree_leaf_pt in pairs(tree.leaf_pts) do
+      table.insert(leaf_pts, tree_leaf_pt.pt)
+    end
+    local clusters = kmeans.find_clusters(leaf_pts)
+    tree.cluster_arrays = {}
+    local colors = {{1, 0, 0}, {0, 1, 0}, {0, 0, 1},
+                    {1, 1, 0}, {1, 0, 1}, {0, 1, 1}}
+    for i, cluster in pairs(clusters) do
+      local array = VertexArray:new(flatten(cluster.points),
+                                    'points',
+                                    colors[i],
+                                    10)
+      table.insert(tree.cluster_arrays, array)
+    end
   end
 
   local unhit_l_pts = all_leaf_points(tree)

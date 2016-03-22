@@ -25,7 +25,7 @@ local function random_indexes(k, n)
   local shuf    = {}
   local indexes = {}
   for i = 1, k do
-    local j = math.random(i, n + 1 - i)
+    local j = math.random(i, n)
     shuf[i], shuf[j] = (shuf[j] or j), (shuf[i] or i)
     indexes[i] = shuf[i]
   end
@@ -51,19 +51,20 @@ local function assign_points_to_centroids(centroids, points)
         best_dist, best_cluster = d, cluster
       end
     end
-    table.insert(cluster.points, pt)
+    table.insert(best_cluster.points, pt)
   end
 end
 
--- This function accepts [{points = [Vec3]}] and returns a sequence [{centroid}]
--- of the centroids of those point sets.
+-- This function accepts [{points = [Vec3]}] and adds the new key `centroid`
+-- alongside each `points` key; the `centroid` value is the centroid Vec3 point
+-- of the corresponding `points` array.
 local function find_new_centroids(clusters)
   for _, cluster in pairs(clusters) do
     local sum = Vec3:new(0, 0, 0)
     for _, pt in pairs(cluster.points) do
       sum = sum + pt
     end
-    cluster.centroid = sum / #points
+    cluster.centroid = sum / #cluster.points
   end
 end
 
@@ -85,7 +86,7 @@ function kmeans.find_clusters(points, k, num_iters)
   assign_points_to_centroids(clusters, points)
 
   for i = 1, num_iters do
-    clusters = find_new_centroids(clusters)
+    find_new_centroids(clusters)
     assign_points_to_centroids(clusters, points)
   end
 

@@ -150,9 +150,17 @@ extern "C" void luarender__draw(int w, int h) {
                       */
 
   // An alternative view from lower down.
-  mat4 view  = lookAt(vec3(7.0, -1.0, 2.0),   // eye
+  /*
+  mat4 view  = lookAt(vec3(7.0, -1.0, 2.0),  // eye
                       vec3(0.0),             // at
                       vec3(0.0, 1.0, 0.0));  // up
+                      */
+
+  // An alternative view from high up.
+  mat4 view  = lookAt(vec3(7.0, 10.0, 2.0),  // eye
+                      vec3(0.0),             // at
+                      vec3(0.0, 1.0, 0.0));  // up
+
 
   if (is_tree_2d) {
     float d = 5.5;
