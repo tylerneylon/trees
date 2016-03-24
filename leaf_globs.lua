@@ -8,10 +8,13 @@ A module to build leaf globs.
 
 local leaf_globs = {}
 
+local kmeans = require 'kmeans'
+
+local Mat3 = require 'Mat3'
 local Vec3 = require 'Vec3'
 
 -- TEMP ? maybe
-local kmeans = require 'kmeans'
+local dbg = require 'dbg'
 
 
 -- Internal functions.
@@ -35,6 +38,65 @@ local function flatten(array)
     append(flat_array, flatten(item))
   end
   return flat_array
+end
+
+-- This function accepts {centroid, points} and returns
+--   axes   = [Vec3] and
+--   scales = [number]
+-- which represent, ordered most significant to least, a basis that will
+-- heuristically minimally encompass the cluster. This is like a poor man's SVD.
+local function find_cluster_directions(cluster)
+  assert(cluster and cluster.points and cluster.centroid)
+
+  local axes, scales = {}, {}
+  local c = cluster.centroid
+
+  -- Find the first two axes and scales.
+  for i = 1, 2 do
+    print('i = ' .. i)
+    local far_vec, far_d = nil, 0
+    for _, pt in pairs(cluster.points) do
+      local vec = pt - c
+      if i == 2 then
+        vec = vec - vec:dot(axes[1]) * axes[1]
+      end
+      local d = vec:length()
+      print('d = ' .. d)
+      if d >= far_d then
+        far_vec, far_d = vec, d
+      end
+    end
+    -- Take the length before we normalize so the length is correct.
+    table.insert(scales, far_vec:length())
+    table.insert(axes, far_vec:normalize())
+  end
+
+  -- Find the third axis.
+  table.insert(axes, axes[1]:cross(axes[2]))
+
+  -- Set up a matrix to help find the third scale.
+  local A = Mat3:new_with_rows(axes[1], axes[2], axes[3])
+
+  -- Choose 2nd and 3rd scales so the corresponding ellipsoid is just big enough
+  -- to include all cluster points.
+  for i = 2, 3 do
+    local max_s = 0
+    for _, pt in pairs(cluster.points) do
+      local v = A * (pt - c)
+      local x = 0
+      for j = 1, i - 1 do x = x + (v[j] / scales[j]) ^ 2 end
+      if math.abs(v[i]) > 0.0001 then
+        max_s = math.max(max_s, math.abs(v[i]) / (1 - x))
+      end
+    end
+    scales[i] = max_s
+  end
+
+  -- TEMP
+  print('scales:')
+  dbg.pr_val(scales)
+
+  return axes, scales
 end
 
 local function tri_area(t)
@@ -566,6 +628,10 @@ function leaf_globs.add_leaves_idea3(tree)
     --      2. Determine & use a good transform for each cluster.
     tree.leaf_arrays = {}
     for i, cluster in pairs(clusters) do
+
+      -- TEMP
+      local axes, scales = find_cluster_directions(cluster)
+
       local glob = leaf_globs.make_glob(cluster.centroid, 0.1, 30)
       table.insert(tree.leaf_arrays,
                    VertexArray:new(glob, 'triangles', colors[i]))
