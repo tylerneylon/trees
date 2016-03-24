@@ -501,6 +501,33 @@ end
 -- by other globs.
 function leaf_globs.add_leaves_idea2_v3(tree)
 
+  local unhit_l_pts = all_leaf_points(tree)
+  local globs = {}
+  local num_globs_added = 0
+  for _, tree_pt in pairs(tree) do
+    if not tree_pt.has_glob and tree_pt.kind == 'parent' then
+      local num_edges, distance = max_dist_to_leaf(tree_pt)
+      if num_edges == 3 and not all_leaf_pts_hit(tree_pt) then
+        local r = distance * 1.2  -- Add a small buffer distance.
+        leaf_globs.make_glob(tree_pt.pt, r, 30, globs)
+        update_leaf_pts_hit(unhit_l_pts, tree_pt.pt, r)
+        num_globs_added = num_globs_added + 1
+      end
+    end
+  end
+
+  local green = {0, 0.6, 0}
+  tree.leaves = VertexArray:new(globs, 'triangles', green)
+  --tree.leaves = VertexArray:new(globs, 'points', green, 10)
+
+  print('Used ' .. num_globs_added .. ' leaf globs.')
+
+  return globs
+end
+
+-- TODO comment
+function leaf_globs.add_leaves_idea3(tree)
+
   -- TEMP
   do
     tree.leaf_pts = all_leaf_points(tree)
@@ -533,6 +560,17 @@ function leaf_globs.add_leaves_idea2_v3(tree)
                                     10)
       table.insert(tree.cluster_arrays, array)
     end
+
+    -- Set up leaf globs and arrays based on the clusters.
+    -- TODO 1. Accept a transform matrix in leaf_globs.make_glob().
+    --      2. Determine & use a good transform for each cluster.
+    tree.leaf_arrays = {}
+    for i, cluster in pairs(clusters) do
+      local glob = leaf_globs.make_glob(cluster.centroid, 0.1, 30)
+      table.insert(tree.leaf_arrays,
+                   VertexArray:new(glob, 'triangles', colors[i]))
+    end
+
   end
 
   local unhit_l_pts = all_leaf_points(tree)
@@ -560,7 +598,7 @@ function leaf_globs.add_leaves_idea2_v3(tree)
 end
 
 function leaf_globs.add_leaves(tree)
-  return leaf_globs.add_leaves_idea2_v3(tree)
+  return leaf_globs.add_leaves_idea3(tree)
 end
 
 return leaf_globs
