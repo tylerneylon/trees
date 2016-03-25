@@ -43,6 +43,18 @@ function Mat3:new_with_rows(r1, r2, r3)
   return setmetatable(m, self)
 end
 
+-- TODO Verify that math.random() returns values in [0, 1) vs [0, 1].
+-- This returns a newly created Mat3 with uniformly random entries in [0, 1).
+function Mat3:new_random()
+  -- Store the entries by rows internally.
+  local m = {{}, {}, {}}
+  for i = 1, 3 do for j = 1, 3 do
+    m[i][j] = math.random()
+  end end
+  self.__index = self
+  return setmetatable(m, self)
+end
+
 function Mat3:det()
   return 0
          + self[1][1] * self[2][2] * self[3][3]
@@ -139,6 +151,67 @@ function Mat3:rotate(angle, dir)
 
   -- Return their composition; these operations are applied right-to-left.
   return z_to_dir * R * dir_to_z
+end
+
+-- TODO Test this.
+-- This orthogonalizes the rows of self, which also effectively orthogonalizes
+-- the columns.
+function Mat3:orthogonalize()
+  for i = 1, 3 do
+    Vec3.normalize(self[i])
+    for j = i + 1, 3 do
+      self[j] = self[j] - self[i] * self[i]:dot(self[j])
+    end
+  end
+end
+
+-- This returns the Frobenius (TODO sp?) distance between self and other, which
+-- is the Euclidean distance between the matrices treated as if they were
+-- vectors.
+-- TODO Test this.
+function Mat3:frob_dist(other)
+  assert(other and getmetatable(other) == Mat3)
+  local sum = 0
+  for i = 1, 3 do for j = 1, 3 do
+    sum = sum + (self[i][j] - other[i][j]) ^ 2
+  end end
+  return math.sqrt(sum)
+end
+
+-- This returns Mat3s U, lambda so that
+--   self = U * Lambda * U'
+-- where U is unitary and Lambda is diagonal.
+-- The actual returned value `lambda` is an array of the diagonal entries of
+-- Lambda, and not a Mat3.
+-- (TODO Are elts of lambda > 0 and in order? say so)
+-- TODO Test this.
+-- Note: For now, this won't work on singular matrices and simply expects self
+--       to be nonsingular. In the future I can consider checking for this.
+function Mat3:eigen_decomp()
+  -- We'll use a power iteration algorithm.
+  local X0 = Mat3:new_random()
+  local iters_done = 0
+  repeat
+    local X1 = A * X0
+    -- Transpose before orthogonalizing so that it happens by columns.
+    -- For example, this way we preserve the direction of the first column.
+    X0 = X1:tranpose():orthogonalize():transpose()
+    iters_done = iters_done + 1
+  until X0:frob_dist(X1) < 0.01 or iters_done == 10
+
+  -- TEMP
+  print('F-dist = ' .. X0:frob_dist(X1) .. ', iters_done = ' .. iters_done)
+
+  local X1 = A * X0
+  local lambda = {}
+  for i = 1, 3 do
+    local k = 1
+    if math.abs(X0[2][i]) > math.abs(X0[k][i]) then k = 2 end
+    if math.abs(X0[3][i]) > math.abs(X0[k][i]) then k = 3 end
+    lambda[i] = X1[1][i] / X0[1][i]
+  end
+
+  return X0, lambda
 end
 
 return Mat3
