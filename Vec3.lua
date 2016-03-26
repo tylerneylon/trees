@@ -16,6 +16,7 @@ local Vec3 = {}
 
 function vectorize_if_regular_table(t)
   if getmetatable(t) == nil then
+    Vec3.__index = Vec3
     setmetatable(t, Vec3)
   end
   return t

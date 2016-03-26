@@ -163,6 +163,7 @@ function Mat3:orthogonalize()
       self[j] = self[j] - self[i] * self[i]:dot(self[j])
     end
   end
+  return self
 end
 
 -- This returns the Frobenius (TODO sp?) distance between self and other, which
@@ -170,6 +171,10 @@ end
 -- vectors.
 -- TODO Test this.
 function Mat3:frob_dist(other)
+  if getmetatable(other) ~= Mat3 then
+    -- Error level 2 indicates this is the caller's fault.
+    error('Expected arg to be a Mat3', 2)
+  end
   assert(other and getmetatable(other) == Mat3)
   local sum = 0
   for i = 1, 3 do for j = 1, 3 do
@@ -195,12 +200,9 @@ function Mat3:eigen_decomp()
     local X1 = A * X0
     -- Transpose before orthogonalizing so that it happens by columns.
     -- For example, this way we preserve the direction of the first column.
-    X0 = X1:tranpose():orthogonalize():transpose()
+    X0 = X1:get_transpose():orthogonalize():get_transpose()
     iters_done = iters_done + 1
-  until X0:frob_dist(X1) < 0.01 or iters_done == 10
-
-  -- TEMP
-  print('F-dist = ' .. X0:frob_dist(X1) .. ', iters_done = ' .. iters_done)
+  until X0:frob_dist(X1) < 0.01 or iters_done == 100
 
   local X1 = A * X0
   local lambda = {}
