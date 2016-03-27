@@ -21,6 +21,8 @@ end
 
 -- Public functions.
 
+-- TODO Consider factoring out common bits of the constructors here.
+
 function Mat3:new_with_cols(c1, c2, c3)
   -- Store the entries by rows internally.
   local m = {{}, {}, {}}
@@ -38,6 +40,16 @@ function Mat3:new_with_rows(r1, r2, r3)
   local rows = {r1, r2, r3}
   for i = 1, 3 do for j = 1, 3 do
     m[i][j] = rows[i][j]  -- Copy so edits to r_i don't affect the new matrix.
+  end end
+  self.__index = self
+  return setmetatable(m, self)
+end
+
+-- TODO Add a test for this.
+function Mat3:new_zero()
+  local m = {{}, {}, {}}
+  for i = 1, 3 do for j = 1, 3 do
+    m[i][j] = 0
   end end
   self.__index = self
   return setmetatable(m, self)
@@ -72,6 +84,10 @@ function Mat3:print()
 end
 
 function Mat3:__mul(m)
+  if getmetatable(self) ~= Mat3 then
+    -- Error level 2 indicates this is the caller's fault.
+    error('Expected arg to be a Mat3', 2)
+  end
   local m_mt = getmetatable(m)
   assert(m_mt == Vec3 or m_mt == Mat3, 'A Mat3 must multiply with Vec3 or Mat3')
 
@@ -197,14 +213,14 @@ function Mat3:eigen_decomp()
   local X0 = Mat3:new_random()
   local iters_done = 0
   repeat
-    local X1 = A * X0
+    local X1 = self * X0
     -- Transpose before orthogonalizing so that it happens by columns.
     -- For example, this way we preserve the direction of the first column.
     X0 = X1:get_transpose():orthogonalize():get_transpose()
     iters_done = iters_done + 1
   until X0:frob_dist(X1) < 0.01 or iters_done == 100
 
-  local X1 = A * X0
+  local X1 = self * X0
   local lambda = {}
   for i = 1, 3 do
     local k = 1

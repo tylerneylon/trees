@@ -40,12 +40,76 @@ local function flatten(array)
   return flat_array
 end
 
+-- This replaces each Vec3 v in arr by M * v.
+local function xform_flat_array(M, arr)
+  for i = 1, #arr, 3 do
+    local v = M * Vec3:new(arr[i], arr[i + 1], arr[i + 2])
+    arr[i], arr[i + 1], arr[i + 2] = v[1], v[2], v[3]
+  end
+end
+
+-- This function accepts {centroid, points} and returns
+--   axes   = [Vec3] and
+--   scales = [number]
+-- which represent, ordered most significant to least, a basis that will
+-- heuristically minimally encompass the cluster. This is based on the SVD,
+-- although no complete SVD calculation ever happens.
+local function find_cluster_directions(cluster)
+  assert(cluster and cluster.points and cluster.centroid)
+
+  -- Let C be the 3 x #points matrix of cluster points.
+  -- Then D = C * C' is a symmetric 3x3 matrix, and we can find the eigenvalue
+  -- decomposition of it.
+  -- D_ij = < C_i, C_j >, where C_i is the ith row of C.
+  local pts = cluster.points
+  local c   = cluster.centroid
+  local D   = Mat3:new_zero()
+  for i = 1, 3 do for j = i, 3 do
+    local sum = 0
+    for k = 1, #pts do
+      sum = sum + (pts[k][i] - c[i]) * (pts[k][j] - c[j])
+    end
+    D[i][j] = sum
+    D[j][i] = sum
+  end end
+
+  local U, lambda = D:eigen_decomp()
+
+  -- TODO Consider: I think I may want to work with sqrt(lambda) values here.
+
+  -- Our scales will be proportional to the values of lambda.
+  -- We'll choose the smallest values that ensure the corresponding ellipsoid
+  -- encompasses all the points.
+  local V = U:get_transpose()
+  local t_sq_max = 0
+  for i = 1, #pts do
+    local t_sq = 0
+    local p    = V * (pts[i] - c)
+    for j = 1, 3 do
+      t_sq = t_sq + (p[j] / lambda[j]) ^ 2
+    end
+    t_sq_max = math.max(t_sq_max, t_sq)
+  end
+  local t = math.sqrt(t_sq_max) * 1.05  -- Properly include all points.
+
+  local axes   = {V[1], V[2], V[3]}  -- The rows of V are the columns of U.
+  local scales = {}
+  for i = 1, 3 do
+    -- TODO Work on this bit.
+    scales[i] = lambda[i] * t * 0.3 -- 0.3 -- * t
+  end
+  -- TEMP
+  print('t = ' .. t)
+
+  return axes, scales
+end
+
 -- This function accepts {centroid, points} and returns
 --   axes   = [Vec3] and
 --   scales = [number]
 -- which represent, ordered most significant to least, a basis that will
 -- heuristically minimally encompass the cluster. This is like a poor man's SVD.
-local function find_cluster_directions(cluster)
+local function old_find_cluster_directions(cluster)
   assert(cluster and cluster.points and cluster.centroid)
 
   local axes, scales = {}, {}
@@ -611,10 +675,11 @@ function leaf_globs.add_leaves_idea3(tree)
     for _, tree_leaf_pt in pairs(tree.leaf_pts) do
       table.insert(leaf_pts, tree_leaf_pt.pt)
     end
-    local clusters = kmeans.find_clusters(leaf_pts)
+    local clusters = kmeans.find_clusters(leaf_pts, 8)
     tree.cluster_arrays = {}
     local colors = {{1, 0, 0}, {0, 1, 0}, {0, 0, 1},
-                    {1, 1, 0}, {1, 0, 1}, {0, 1, 1}}
+                    {1, 1, 0}, {1, 0, 1}, {0, 1, 1},
+                    {0.5, 0.5, 0}, {0.5, 0, 0.5}, {0, 0.5, 0.5}}
     for i, cluster in pairs(clusters) do
       local array = VertexArray:new(flatten(cluster.points),
                                     'points',
@@ -632,35 +697,37 @@ function leaf_globs.add_leaves_idea3(tree)
       -- TEMP
       local axes, scales = find_cluster_directions(cluster)
 
-      local glob = leaf_globs.make_glob(cluster.centroid, 0.1, 30)
+      -- TEMP
+      print('scales:')
+      for i = 1, 3 do
+        io.write((i > 1 and ', ' or '') .. scales[i])
+      end
+      print('')
+
+      --local glob = leaf_globs.make_glob(cluster.centroid, 0.1, 30)
+
+      local glob = leaf_globs.make_glob(Vec3:new(0, 0, 0), 1.0, 30)
+
+      local U       = Mat3:new_with_cols(axes[1], axes[2], axes[3])
+      local U_prime = U:get_transpose()
+      local L       = Mat3:new_with_rows({scales[1], 0, 0},
+                                         {0, scales[2], 0},
+                                         {0, 0, scales[3]})
+      local M = U * L * U_prime
+
+      xform_flat_array(M, glob)
+      ---[[
+      for j = 1, #glob, 3 do
+        local v = Vec3:new(glob[j], glob[j + 1], glob[j + 2]) + cluster.centroid
+        glob[j], glob[j + 1], glob[j + 2] = v[1], v[2], v[3]
+      end
+      --]]
+
       table.insert(tree.leaf_arrays,
                    VertexArray:new(glob, 'triangles', colors[i]))
     end
 
   end
-
-  local unhit_l_pts = all_leaf_points(tree)
-  local globs = {}
-  local num_globs_added = 0
-  for _, tree_pt in pairs(tree) do
-    if not tree_pt.has_glob and tree_pt.kind == 'parent' then
-      local num_edges, distance = max_dist_to_leaf(tree_pt)
-      if num_edges == 3 and not all_leaf_pts_hit(tree_pt) then
-        local r = distance * 1.2  -- Add a small buffer distance.
-        leaf_globs.make_glob(tree_pt.pt, r, 30, globs)
-        update_leaf_pts_hit(unhit_l_pts, tree_pt.pt, r)
-        num_globs_added = num_globs_added + 1
-      end
-    end
-  end
-
-  local green = {0, 0.6, 0}
-  tree.leaves = VertexArray:new(globs, 'triangles', green)
-  --tree.leaves = VertexArray:new(globs, 'points', green, 10)
-
-  print('Used ' .. num_globs_added .. ' leaf globs.')
-
-  return globs
 end
 
 function leaf_globs.add_leaves(tree)
