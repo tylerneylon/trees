@@ -17,6 +17,11 @@ local Vec3 = require 'Vec3'
 local dbg = require 'dbg'
 
 
+-- Parameters.
+
+local num_custers = 11
+
+
 -- Internal functions.
 
 -- This expects two sequence tables in `t` and `suffix.
@@ -74,6 +79,10 @@ local function find_cluster_directions(cluster)
   end end
 
   local U, lambda = D:eigen_decomp()
+  -- Set lambda = sqrt(lambda) as these are the true SVD's singular values.
+  for i, val in pairs(lambda) do
+    lambda[i] = math.sqrt(val)
+  end
 
   -- TODO Consider: I think I may want to work with sqrt(lambda) values here.
 
@@ -95,8 +104,7 @@ local function find_cluster_directions(cluster)
   local axes   = {V[1], V[2], V[3]}  -- The rows of V are the columns of U.
   local scales = {}
   for i = 1, 3 do
-    -- TODO Work on this bit.
-    scales[i] = lambda[i] * t * 0.3 -- 0.3 -- * t
+    scales[i] = lambda[i] * t * 0.95
   end
   -- TEMP
   print('t = ' .. t)
@@ -675,7 +683,7 @@ function leaf_globs.add_leaves_idea3(tree)
     for _, tree_leaf_pt in pairs(tree.leaf_pts) do
       table.insert(leaf_pts, tree_leaf_pt.pt)
     end
-    local clusters = kmeans.find_clusters(leaf_pts, 8)
+    local clusters = kmeans.find_clusters(leaf_pts, num_clusters)
     tree.cluster_arrays = {}
     local colors = {{1, 0, 0}, {0, 1, 0}, {0, 0, 1},
                     {1, 1, 0}, {1, 0, 1}, {0, 1, 1},
@@ -683,7 +691,7 @@ function leaf_globs.add_leaves_idea3(tree)
     for i, cluster in pairs(clusters) do
       local array = VertexArray:new(flatten(cluster.points),
                                     'points',
-                                    colors[i],
+                                    {0.2, 0.6, 0.3}, -- colors[i],
                                     10)
       table.insert(tree.cluster_arrays, array)
     end
@@ -724,7 +732,7 @@ function leaf_globs.add_leaves_idea3(tree)
       --]]
 
       table.insert(tree.leaf_arrays,
-                   VertexArray:new(glob, 'triangles', colors[i]))
+                   VertexArray:new(glob, 'triangles', {0.2, 0.6, 0.3})) -- colors[i],
     end
 
   end

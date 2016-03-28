@@ -32,6 +32,14 @@ using namespace glm;
 #define YES 1
 #define NO  0
 
+typedef enum {
+  perspective_low,
+  perspective_medium,
+  perspective_high,
+} Perspective;
+
+#define perspective_state perspective_medium
+
 
 // Internal globals.
 
@@ -142,25 +150,30 @@ extern "C" void luarender__draw(int w, int h) {
   // Recompute the mvp matrix.
   mat4 projection = perspective(45.0f, aspect_ratio, 0.1f, 1000.0f);
 
-  // The default, from-high-up, perspective.
-  /*
-  mat4 view  = lookAt(vec3(4.0, 4.0, 2.0),   // eye
-                      vec3(0.0),             // at
-                      vec3(0.0, 1.0, 0.0));  // up
-                      */
 
-  // An alternative view from lower down.
-  /*
-  mat4 view  = lookAt(vec3(7.0, -1.0, 2.0),  // eye
-                      vec3(0.0),             // at
-                      vec3(0.0, 1.0, 0.0));  // up
-                      */
+  mat4 view;
+  switch (perspective_state) {
+    case perspective_medium:
+      // The default, from-kinda-high-up, perspective.
+      view  = lookAt(vec3(6.0, 3.0, 2.0),   // eye
+                     vec3(0.0),             // at
+                     vec3(0.0, 1.0, 0.0));  // up
+      break;
 
-  // An alternative view from high up.
-  mat4 view  = lookAt(vec3(7.0, 10.0, 2.0),  // eye
-                      vec3(0.0),             // at
-                      vec3(0.0, 1.0, 0.0));  // up
+    case perspective_low:
+      // An alternative view from lower down.
+      view  = lookAt(vec3(7.0, -1.0, 2.0),  // eye
+                     vec3(0.0),             // at
+                     vec3(0.0, 1.0, 0.0));  // up
+      break;
 
+    case perspective_high:
+      // An alternative view from high up.
+      view  = lookAt(vec3(7.0, 10.0, 2.0),  // eye
+                     vec3(0.0),             // at
+                     vec3(0.0, 1.0, 0.0));  // up
+      break;
+  }
 
   if (is_tree_2d) {
     float d = 5.5;
