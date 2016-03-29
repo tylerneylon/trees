@@ -20,9 +20,17 @@ local function vectors_are_close(v1, v2)
 end
 
 
--- Test element lookup based on constructors.
+-- Test the zero constructor.
 
 local M
+
+M = Mat3:new_zero()
+for i = 1, 3 do for j = 1, 3 do
+  assert(M[i][j] == 0)
+end end
+
+
+-- Test element lookup based on constructors.
 
 M = Mat3:new_with_cols({1, 4, 7},
                        {2, 5, 8},

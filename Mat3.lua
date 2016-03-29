@@ -18,50 +18,49 @@ local function pr(...)
   print(string.format(...))
 end
 
+local function new_Mat3()
+  local m = {{}, {}, {}}
+  Mat3.__index = Mat3
+  return setmetatable(m, Mat3)
+end
+
 
 -- Public functions.
 
--- TODO Consider factoring out common bits of the constructors here.
-
 function Mat3:new_with_cols(c1, c2, c3)
   -- Store the entries by rows internally.
-  local m = {{}, {}, {}}
+  local m = new_Mat3()
   local cols = {c1, c2, c3}
   for i = 1, 3 do for j = 1, 3 do
     m[i][j] = cols[j][i]
   end end
-  self.__index = self
-  return setmetatable(m, self)
+  return m
 end
 
 function Mat3:new_with_rows(r1, r2, r3)
   -- Store the entries by rows internally.
-  local m = {{}, {}, {}}
+  local m = new_Mat3()
   local rows = {r1, r2, r3}
   for i = 1, 3 do for j = 1, 3 do
     m[i][j] = rows[i][j]  -- Copy so edits to r_i don't affect the new matrix.
   end end
-  self.__index = self
-  return setmetatable(m, self)
+  return m
 end
 
--- TODO Add a test for this.
 function Mat3:new_zero()
-  local m = {{}, {}, {}}
+  local m = new_Mat3()
   for i = 1, 3 do for j = 1, 3 do
     m[i][j] = 0
   end end
-  self.__index = self
-  return setmetatable(m, self)
+  return m
 end
 
--- TODO Verify that math.random() returns values in [0, 1) vs [0, 1].
 -- This returns a newly created Mat3 with uniformly random entries in [0, 1).
 function Mat3:new_random()
   -- Store the entries by rows internally.
   local m = {{}, {}, {}}
   for i = 1, 3 do for j = 1, 3 do
-    m[i][j] = math.random()
+    m[i][j] = math.random()  -- This is a uniform random value in [0, 1).
   end end
   self.__index = self
   return setmetatable(m, self)
