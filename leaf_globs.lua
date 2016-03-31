@@ -84,8 +84,6 @@ local function find_cluster_directions(cluster)
     lambda[i] = math.sqrt(val)
   end
 
-  -- TODO Consider: I think I may want to work with sqrt(lambda) values here.
-
   -- Our scales will be proportional to the values of lambda.
   -- We'll choose the smallest values that ensure the corresponding ellipsoid
   -- encompasses all the points.
