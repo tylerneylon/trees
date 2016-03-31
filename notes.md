@@ -81,3 +81,46 @@ would work:
     Then y_0, .. , y_n are the barycentric coordinates.
 
 I have an audio file with a proof idea (something close to #128).
+
+## Branch shapes
+
+### Canopy symmetry
+
+I've noticed that the canopy of leaf points is not well distributed. In
+particular, the leaf points appear to be mainly elliptical in shape, whereas I
+consider real trees to have more of a circular appearance from above.
+
+I decided to start by trying to approach the 2d tree case first. I'm looking for
+a distribution function that is self-reproducing in the sense that two smaller
+copies of itself, scaled and added together, recreate the original function.
+
+An easy item to work with is the characteristic function of an interval.
+
+I found another reproducing case in what I call the double-plateau function. It
+looks a bit like this:
+
+         ___
+     ___/   \___
+    /           \
+
+If you space the copies correctly, like this:
+
+         ___
+     ___/   \___
+    /           \
+    
+            +
+                 ___
+             ___/   \___
+            /           \
+
+Then the resulting sum has the same general shape, although the relative sizes
+of the plateau pieces may change.
+
+Another function that works similarly is to start with g(x) = 1^s where
+s = log(2)/log(3), about 0.63092975, and reflect it around x=1 to arrive at a
+symmetric hill-like shape.
+
+The sum of two of these matches exactly along the edges, but there is a slight
+bump in the middle of the sum. I'm curious to see what further iterations of
+this shape turn out to look like.
