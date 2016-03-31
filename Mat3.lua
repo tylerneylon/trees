@@ -168,7 +168,6 @@ function Mat3:rotate(angle, dir)
   return z_to_dir * R * dir_to_z
 end
 
--- TODO Test this.
 -- This orthogonalizes the rows of self, which also effectively orthogonalizes
 -- the columns.
 function Mat3:orthogonalize()
@@ -181,10 +180,9 @@ function Mat3:orthogonalize()
   return self
 end
 
--- This returns the Frobenius (TODO sp?) distance between self and other, which
+-- This returns the Frobenius distance between self and other, which
 -- is the Euclidean distance between the matrices treated as if they were
 -- vectors.
--- TODO Test this.
 function Mat3:frob_dist(other)
   if getmetatable(other) ~= Mat3 then
     -- Error level 2 indicates this is the caller's fault.
@@ -198,13 +196,16 @@ function Mat3:frob_dist(other)
   return math.sqrt(sum)
 end
 
+function Mat3:col_as_vec(i)
+  assert(getmetatable(self) == Mat3)
+  return Vec3:new(self[1][i], self[2][i], self[3][i])
+end
+
 -- This returns Mat3s U, lambda so that
 --   self = U * Lambda * U'
 -- where U is unitary and Lambda is diagonal.
 -- The actual returned value `lambda` is an array of the diagonal entries of
--- Lambda, and not a Mat3.
--- (TODO Are elts of lambda > 0 and in order? say so)
--- TODO Test this.
+-- Lambda, and not a Mat3. The lambda values are sorted largest-first.
 -- Note: For now, this won't work on singular matrices and simply expects self
 --       to be nonsingular. In the future I can consider checking for this.
 function Mat3:eigen_decomp()

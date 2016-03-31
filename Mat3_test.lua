@@ -176,4 +176,81 @@ assert(P[1][2] == 4)
 assert(M[1][2] == 2)  -- Sanity check that M remains unchanged.
 
 
+-- Test orthogonalize.
+
+-- Choose a nonsingular matrix.
+repeat
+  M = Mat3:new_random()
+until not close(M:det(), 0)
+P = M:orthogonalize()
+
+assert(P == M)
+
+for i = 1, 3 do
+  v = Vec3:new(M[i])
+  assert(close(v:length(), 1))
+  for j = i + 1, 3 do
+    u = Vec3:new(M[j])
+    assert(close(u:dot(v), 0))
+  end
+end
+
+
+-- Test frob_dist().
+
+M = Mat3:new_random()
+assert(M:frob_dist(M) == 0)
+
+-- 2² + 4² + 4² = 4 + 16 + 16 = 36 = 6²
+M = Mat3:new_with_rows({1, 0, 0},
+                       {0, 2, 0},
+                       {0, 0, 3})
+P = Mat3:new_with_rows({3, 0, 0},
+                       {0, 6, 0},
+                       {0, 4, 3})
+assert(M:frob_dist(P) == 6)
+
+
+
+-- Test eigen_decomp().
+
+local L
+
+-- Returns a uniform random in the range [-1, 1).
+local function rnd()
+  return math.random() * 2 - 1
+end
+
+-- Choose a nonsingular matrix.
+repeat
+  M = Mat3:new_random()
+until not close(M:det(), 0)
+M:orthogonalize()  -- This way it's easy to find the inverse of M.
+local lambda_in = {rnd(), rnd(), rnd()}
+L = Mat3:new_with_rows({lambda_in[1], 0, 0},
+                       {0, lambda_in[2], 0},
+                       {0, 0, lambda_in[3]})
+P = M * L * M:get_transpose()
+
+local U, lambda_out = P:eigen_decomp()
+
+-- Check that the lambda values approximately match.
+table.sort(lambda_in)
+table.sort(lambda_out)
+for i = 1, 3 do
+  assert(close(lambda_in[i], lambda_out[i]))
+end
+
+-- Check that the columns match, up to a permutation.
+for i = 1, 3 do
+  local v = U:col_as_vec(i):normalize()
+  local d = 0
+  for j = 1, 3 do
+    local u = M:col_as_vec(j):normalize()
+    d = math.max(d, math.abs(u:dot(v)))
+  end
+  assert(close(d, 1))
+end
+
+
 print('All tests passed!')
