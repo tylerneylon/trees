@@ -86,6 +86,8 @@ I have an audio file with a proof idea (something close to #128).
 
 ### Canopy symmetry
 
+#### Approach 1
+
 I've noticed that the canopy of leaf points is not well distributed. In
 particular, the leaf points appear to be mainly elliptical in shape, whereas I
 consider real trees to have more of a circular appearance from above.
@@ -124,3 +126,33 @@ symmetric hill-like shape.
 The sum of two of these matches exactly along the edges, but there is a slight
 bump in the middle of the sum. I'm curious to see what further iterations of
 this shape turn out to look like.
+
+I also noticed that normal curves look kind of close when added together.
+
+For example, let N_u = exp(-(x-u)^2/2). Then
+
+    N_u ~approximates~ exp(1/8)/2 * (N_{1/2} + N_{-1/2})
+
+Unless I've made a mistake, those curves have the same peak, and not much
+difference throughout. I wonder if there are better component pieces available.
+I could consider a power series approach.
+
+#### Approach 2
+
+Another line of attack would be to heuristically choose new branch directions
+based on existing branch directions as the tree skeleton is built.
+
+When it comes time to add a new fork, I could test out a small number of
+candidate directions and choose the one that maximizes the minimum distance to
+any existing direction. The easy-to-code approach has this taking n^2 time
+overall, however. I could use an LSH approach to cut that down to about n time,
+but then the parameters have to be chosen carefully and the code is more
+complex.
+
+I have a gut feeling that there's a way to do this that's both efficient and not
+insanely hard to code. How does nature do it?
+
+
+
+
+
