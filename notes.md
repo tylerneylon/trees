@@ -152,7 +152,68 @@ complex.
 I have a gut feeling that there's a way to do this that's both efficient and not
 insanely hard to code. How does nature do it?
 
+#### Approach 3
 
+The idea here is to essentially pre-assign directions to leaf points in a way
+that heuristically distributes them evenly across a hemisphere.
 
+Start with a spiral from the pole of a hemisphere down to the equator, and
+identify this with the [0, 1) interval. It can wind around the pole k times, and
+we'll put n points on it, evenly distributed within the interval.
 
+I think this is called a Fibonacci lattice:
+http://blog.marmakoide.org/?p=1
+http://math.stackexchange.com/questions/1358046/
 
+Now, the trunk is associated with the direction at x=0, the pole.
+
+Assign two subsets of directions to the next two branches.
+
+For the first split, they are characterized by bit=0 and bit=1 where this bit is
+the first after the value of k is set in the binary representation of the number
+in the unit interval.
+
+From here on, alternate between the most-sig binary digit of either the bits
+after k, or within k, respectively. So the overall pattern looks like this:
+
+1. Bit split after k.
+2. Bit split after k. (one-off starting pattern since it's a hemisphere)
+3. Bit split within k.
+4. Bit split after k.
+5. (etc.) alternat within k, after k, etc.
+
+So the value k needs to be chosen so that this process fits nicely with our
+value of n, which, ignoring pruning, would be a power of 2. Allowing for
+pruning, we can just leave the early leaf pt where it is.
+
+##### Approach 3.5
+
+Pure approach 3 is not ideal in that it results in too perfect a canopy; too
+deterministic. A hybrid approach could offer some variation within the perfect
+approach. So, each branching could introduce a little directional variation, and
+those variations could add up along the path from the trunk to the leaf point.
+In other words, the final leaf point direction would be the ideal direction +
+the sum of all adjustments made along the path from the trunk up. This way, leaf
+points that are edge-wise close together are likely to have similar directions
+that altogether approximate the surface of a sphere.
+
+#### Approach 4
+
+This is the simplest I've thought of so far (besides the current code, which
+doesn't really achieve canopy symmetry at all). Just alternate the planes of the
+branching splits, so that we avoid an elliptical shape.
+
+#### Questions about canopy symmetry
+
+How does nature solve this? It seems that different tree species tend to have
+different characteristic shapes, and even characteristic variations within those
+shapes. How does nature determine those shapes?
+
+For example, is the shape pre-determined genetically? It seems there is some
+response to gravity and light. But perhaps those only account for self-pruning
+and bending.
+
+Is a branch direction determined at the time of branching, or before? Does it
+anticipate sunlight or react in retrospect to it? I'm assuming that the best
+branch direction is the one that optimizes sunlight exposure to the leaves. Is
+that a good assumption?
