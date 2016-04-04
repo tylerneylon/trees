@@ -103,7 +103,8 @@ function render.draw()
   --]]
 
   -- TEMP
-  ---[[
+  -- Use the code below to render idea 3.
+  --[[
   for _, array in pairs(tree.leaf_arrays) do
     array:draw()
   end

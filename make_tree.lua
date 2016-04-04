@@ -162,6 +162,9 @@ local function add_to_tree(args, tree)
 
   out_dir = Mat3:rotate(turn_angle, args.direction) * out_dir
 
+  -- TODO HERE Customize how dir{1,2} are chosen below. The only key property is
+  --      that dir1 is to the left of dir2 with respect to out_dir.
+
   local dir1 = Mat3:rotate( split_angle * w1, out_dir) * args.direction
   local dir2 = Mat3:rotate(-split_angle * w2, out_dir) * args.direction
   tree[#tree].out = out_dir

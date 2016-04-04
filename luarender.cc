@@ -36,9 +36,10 @@ typedef enum {
   perspective_low,
   perspective_medium,
   perspective_high,
+  perspective_birdseye
 } Perspective;
 
-#define perspective_state perspective_medium
+#define perspective_state perspective_birdseye
 
 
 // Internal globals.
@@ -172,6 +173,13 @@ extern "C" void luarender__draw(int w, int h) {
       view  = lookAt(vec3(7.0, 10.0, 2.0),  // eye
                      vec3(0.0),             // at
                      vec3(0.0, 1.0, 0.0));  // up
+      break;
+
+    case perspective_birdseye:
+      // An alternative view from directly above.
+      view  = lookAt(vec3(0.0, 7.0, 0.0),  // eye
+                     vec3(0.0),             // at
+                     vec3(1.0, 0.0, 0.0));  // up
       break;
   }
 
