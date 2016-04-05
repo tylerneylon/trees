@@ -113,6 +113,8 @@ local function add_to_tree(args, tree)
 
   args.direction:normalize()
   local len = val_near_avg(args.avg_len)
+  local prev_out_dir
+  if #tree > 0 then prev_out_dir = tree[#tree].out end
   add_line(tree, args.origin, args.origin + len * args.direction, args.parent)
 
   if len < args.min_len or args.max_recursion == 0 then
@@ -149,16 +151,23 @@ local function add_to_tree(args, tree)
   local split_angle = val_near_avg(0.55)  -- This is in radians.
   local turn_angle  = uniform_rand(0.0, 2 * math.pi)
 
-  -- Find other_dir orthogonal to direction.
-  local dir = args.direction
-  local arbit_dir
-  -- Improve stability by ensuring arbit_dir is not near-dependent on direction.
-  if dir[1] > dir[2] and dir[1] > dir[3] then
-    arbit_dir = Vec3:new(0, 1, 0)
-  else
-    arbit_dir = Vec3:new(1, 0, 0)
+  -- This is an experimental value.
+  -- TODO NEXT Try making this an interesting function of max_recursion.
+  turn_angle = math.pi / 2
+
+  -- Find out_dir orthogonal to direction.
+  local out_dir = prev_out_dir
+  if out_dir == nil then
+    local dir = args.direction
+    local arbit_dir
+    -- Improve stability by ensuring arbit_dir is not near-dependent on direction.
+    if math.abs(dir[1]) > math.abs(dir[2]) then
+      arbit_dir = Vec3:new(0, 1, 0)
+    else
+      arbit_dir = Vec3:new(1, 0, 0)
+    end
+    out_dir = dir:cross(arbit_dir):normalize()
   end
-  local out_dir = dir:cross(arbit_dir):normalize()
 
   out_dir = Mat3:rotate(turn_angle, args.direction) * out_dir
 
@@ -166,7 +175,9 @@ local function add_to_tree(args, tree)
   --      that dir1 is to the left of dir2 with respect to out_dir.
 
   local dir1 = Mat3:rotate( split_angle * w1, out_dir) * args.direction
+  assert(not dir1:has_nan())
   local dir2 = Mat3:rotate(-split_angle * w2, out_dir) * args.direction
+  assert(not dir2:has_nan())
   tree[#tree].out = out_dir
 
   subtree_args.direction = dir1
@@ -198,7 +209,8 @@ function make_tree.make()
   local tree = add_to_tree(tree_add_params)
   rings.add_rings(tree)
   bark.add_bark(tree)
-  leaf_globs.add_leaves(tree)
+  -- TEMP
+  --leaf_globs.add_leaves(tree)
 
   print('Lua: num_pts=' .. #tree)
 

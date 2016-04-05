@@ -88,7 +88,10 @@ function Mat3:__mul(m)
     error('Expected arg to be a Mat3', 2)
   end
   local m_mt = getmetatable(m)
-  assert(m_mt == Vec3 or m_mt == Mat3, 'A Mat3 must multiply with Vec3 or Mat3')
+  if m_mt ~= Vec3 and m_mt ~= Mat3 then
+    -- Error level 2 indicates this is the caller's fault.
+    error('A Mat3 must multiply with a Vec3 or Mat3', 2)
+  end
 
   -- Internally, this is always matrix multiplication.
   -- When m is a Vec3, we convert it to a matrix and then convert the output to
@@ -129,7 +132,7 @@ function Mat3:rotate_to_z(dir)
   -- right-hand rule. In other words, the matrix {v1, v2, v3} has determinant 1.
 
   local away_from_v3
-  if v3[1] > v3[2] then
+  if math.abs(v3[1]) > math.abs(v3[2]) then
     away_from_v3 = Vec3:new(0, 1, 0)
   else
     away_from_v3 = Vec3:new(1, 0, 0)
@@ -149,6 +152,10 @@ end
 -- looking straight down dir; that is, in the opposite direction of dir.
 function Mat3:rotate(angle, dir)
   assert(angle == angle)  -- Check for nan.
+  if dir:has_nan() then
+    -- Error level 2 indicates this is the caller's fault.
+    error('dir vector has a nan value', 2)
+  end
   assert(not dir:has_nan())
   -- Plan: move dir to z; rotate around z, move z back to dir by inverse.
 
