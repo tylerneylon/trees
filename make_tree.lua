@@ -121,8 +121,6 @@ local function add_to_tree(args, tree)
 
   args.direction:normalize()
   local len = val_near_avg(args.avg_len)
-  local prev_out_dir
-  if #tree > 0 then prev_out_dir = tree[#tree].out end
   add_line(tree, args.origin, args.origin + len * args.direction, args.parent)
 
   if len < args.min_len or args.max_recursion == 0 then
@@ -169,7 +167,7 @@ local function add_to_tree(args, tree)
   end
 
   -- Find out_dir orthogonal to direction.
-  local out_dir = prev_out_dir
+  local out_dir = args.out
   if out_dir == nil then
     local dir = args.direction
     local arbit_dir
@@ -191,7 +189,9 @@ local function add_to_tree(args, tree)
   assert(not dir1:has_nan())
   local dir2 = Mat3:rotate(-split_angle * w2, out_dir) * args.direction
   assert(not dir2:has_nan())
-  tree[#tree].out = out_dir
+
+  subtree_args.out = out_dir
+  tree[#tree].out  = out_dir
 
   -- Maintain a flat array of vertex positions for lines to illustrate the out
   -- directions at each branching point.
