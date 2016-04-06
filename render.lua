@@ -115,9 +115,10 @@ function render.draw()
   -- TEMP usually this is drawn!
   tree.bark.v_array:draw()
 
-  out_dir_v_array:draw()
+  --out_dir_v_array:draw()
 
-  --tree.leaves:draw()
+  -- Use this to render leaf idea 2.
+  tree.leaves:draw()
 
   -- TEMP
   --glob_array:draw()

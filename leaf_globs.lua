@@ -737,7 +737,7 @@ function leaf_globs.add_leaves_idea3(tree)
 end
 
 function leaf_globs.add_leaves(tree)
-  return leaf_globs.add_leaves_idea3(tree)
+  return leaf_globs.add_leaves_idea2_v3(tree)
 end
 
 return leaf_globs

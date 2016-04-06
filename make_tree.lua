@@ -160,11 +160,12 @@ local function add_to_tree(args, tree)
   -- This is an experimental value.
   -- TODO NEXT Try making this an interesting function of max_recursion.
 
-  if args.max_recursion > 8 then
+  if args.max_recursion > 8 or args.max_recursion % 2 ~= 0 then
     turn_angle = math.pi / 2
   else
     turn_angle = 0
   end
+  turn_angle = turn_angle + uniform_rand(-0.7, 0.7)
 
   -- Find out_dir orthogonal to direction.
   local out_dir = args.out
@@ -229,7 +230,7 @@ function make_tree.make()
   rings.add_rings(tree)
   bark.add_bark(tree)
   -- TEMP
-  --leaf_globs.add_leaves(tree)
+  leaf_globs.add_leaves(tree)
 
   print('Lua: num_pts=' .. #tree)
 
