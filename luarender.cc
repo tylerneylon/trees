@@ -39,8 +39,8 @@ typedef enum {
   perspective_birdseye
 } Perspective;
 
-#define perspective_state perspective_birdseye
-//#define perspective_state perspective_medium
+//#define perspective_state perspective_birdseye
+#define perspective_state perspective_medium
 
 
 // Internal globals.

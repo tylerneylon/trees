@@ -78,6 +78,8 @@ function render.init()
   tree = make_tree.make()
   setup_lines()
 
+  out_dir_v_array = VertexArray:new(tree.out_dir_pts, 'lines')
+
   -- TEMP
   --[[
   glob = leaf_globs.make_glob(Vec3:new(0, 1.5, 0),  -- center
@@ -112,6 +114,8 @@ function render.draw()
 
   -- TEMP usually this is drawn!
   tree.bark.v_array:draw()
+
+  out_dir_v_array:draw()
 
   --tree.leaves:draw()
 

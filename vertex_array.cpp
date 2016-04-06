@@ -35,7 +35,8 @@ static vertex_array__TransformCallback normal_xform_callback = NULL;
 typedef enum {
   mode_triangle_strip,
   mode_triangles,
-  mode_points
+  mode_points,
+  mode_lines
 } Mode;
 
 // State owned by any single VertexArray instance.
@@ -137,6 +138,22 @@ static void gl_setup_new_vertex_array(VertexArray *v_array,
 
 // Internal: Lua C functions.
 
+// This function expects an error string to be on top of the stack. It prints
+// that message along with a stack trace starting with the first callee before
+// the current C function. This function does not return.
+//
+// This function was originally based on code found here:
+// http://stackoverflow.com/questions/12256455/
+static int lua_traceback(lua_State *L) {
+  int msg_index = lua_gettop(L);
+  lua_getglobal(L, "debug");
+  lua_getfield(L, -1, "traceback");
+  lua_pushvalue(L, msg_index);
+  lua_pushinteger(L, 2);
+  lua_call(L, 2, 1);
+  return lua_error(L);
+}
+
 // This creates an Array of GLfloats from what is expected to be a Lua array at
 // the given index on L's stack. The caller is responsible for calling
 // array__delete on the returned Array. L's stack is preserved.
@@ -150,6 +167,10 @@ static Array c_array_from_lua_array(lua_State *L, int index) {
     lua_rawgeti(L, index, i);
       // stack = [.. lua_arr .. lua_arr[i]]
     if (lua_isnil(L, -1)) break;
+    if (!lua_isnumber(L, -1)) {
+      lua_pushstring(L, "Expected a flat array.");
+      lua_traceback(L);  // This function never returns.
+    }
     array__new_val(arr, GLfloat) = lua_tonumber(L, -1);
   }
       // stack = [.. lua_arr .. nil]
@@ -169,7 +190,7 @@ static void luaL_checkindexable(lua_State *L, int narg) {
 
 // Lua C function.
 // Expected parameters: {points table}, draw_mode, [color]
-// where draw_mode is 'triangle strip', 'triangles', or 'points'.
+// where draw_mode is 'triangle strip', 'triangles', 'points', or 'lines'.
 // The optional color is expected to have the format {R, G, B}, where each color
 // component is a number in the range [0, 1].
 static int vertex_array__new(lua_State *L) {
@@ -197,9 +218,11 @@ static int vertex_array__new(lua_State *L) {
     GLfloat point_size = lua_tonumberx(L, 5, &isnum);
     if (isnum) glPointSize(point_size);
 
+  } else if (strcmp(mode_str, "lines") == 0) {
+    draw_mode = mode_lines;
   } else {
     const char *msg = "Expected mode to be 'triangle strip', 'triangles', "
-                      "or 'points'";
+                      "'points', or 'lines'.";
     return luaL_argerror(L,     // state
                          3,     // arg
                          msg);  // msg
@@ -251,24 +274,18 @@ static int vertex_array__new(lua_State *L) {
 // Expected parameters:
 //   self      = a VertexArray instance.
 //   [mode]    = a string with a valid mode value.
-// Valid modes are 'triangle strip', 'triangles', and 'points'.
+// Valid modes are 'triangle strip', 'triangles', 'points', and 'lines'.
 static int get_self_and_mode(lua_State *L,
                               VertexArray **v_array,
                               GLenum *mode) {
   *v_array = (VertexArray *)luaL_checkudata(L, 1, vertex_array_metatable);
 
   // Set the default drawing mode.
-  switch((*v_array)->draw_mode) {
-    case mode_triangle_strip:
-      *mode = GL_TRIANGLE_STRIP;
-      break;
-    case mode_triangles:
-      *mode = GL_TRIANGLES;
-      break;
-    case mode_points:
-      *mode = GL_POINTS;
-      break;
-  }
+  GLenum gl_mode[] = {GL_TRIANGLE_STRIP, GL_TRIANGLES, GL_POINTS, GL_LINES};
+  *mode = gl_mode[(*v_array)->draw_mode];
+
+  // TODO There are two places where we convert a C string into an enum value.
+  //      Consider factoring out something in common.
 
   // Allow the user to override the initially set drawing mode -- although this
   // could potentially reverse some of the normal vectors.
@@ -280,9 +297,11 @@ static int get_self_and_mode(lua_State *L,
       *mode = GL_TRIANGLES;
     } else if (strcmp(mode_name, "points") == 0) {
       *mode = GL_POINTS;
+    } else if (strcmp(mode_name, "lines") == 0) {
+      *mode = GL_LINES;
     } else {
       const char *msg = "Expected mode to be 'triangle strip', 'triangles', "
-                        "or 'points'";
+                        "'points', or 'lines'.";
       return luaL_argerror(L,     // state
                            2,     // arg
                            msg);  // msg

@@ -36,7 +36,8 @@ local function add_stick_bark(tree)
   if tree.bark.pts == nil then tree.bark.pts = {} end
   local bark_pts = tree.bark.pts
 
-  for _, tree_pt in pairs(tree) do
+  for tree_idx = 1, #tree do
+    local tree_pt = tree[tree_idx]
     if tree_pt.kind == 'child' then
 
       -- The two rings will have the same number of points except when the
@@ -143,7 +144,8 @@ local function add_joint_piece(tree, tree_pt,
 end
 
 local function add_joint_bark(tree)
-  for _, tree_pt in pairs(tree) do
+  for tree_idx = 1, #tree do
+    local tree_pt = tree[tree_idx]
     if tree_pt.kind == 'parent' then
 
       -- Set up top_pts with the combined points of the top rings.
@@ -200,7 +202,8 @@ local function old_add_joint_bark(tree)
   if tree.bark.pts == nil then tree.bark.pts = {} end
   local bark_pts = tree.bark.pts
 
-  for _, tree_pt in pairs(tree) do
+  for tree_idx = 1, #tree do
+    local tree_pt = tree[tree_idx]
     if tree_pt.kind == 'parent' then
 
       -- Set up top_pts with the combined points of the top rings.
@@ -264,7 +267,8 @@ end
 
 function bark.add_bark(tree)
   -- Sanity check.
-  for _, tree_pt in pairs(tree) do
+  for tree_idx = 1, #tree do
+    local tree_pt = tree[tree_idx]
     assert(tree_pt.ring, 'Expected that all tree pts would have a ring.')
   end
 

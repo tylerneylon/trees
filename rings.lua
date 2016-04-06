@@ -38,7 +38,8 @@ end
 
 local function check_tree_integrity(tree)
   local fmt = 'Expected %s to be a Vec3.'
-  for _, tree_pt in pairs(tree) do
+  for i = 1, #tree do
+    local tree_pt = tree[i]
     assertup(getmetatable(tree_pt.pt) == Vec3, fmt:format('tree_pt.pt'))
     if tree_pt.down then
       assertup(getmetatable(tree_pt.down.pt) == Vec3,
@@ -341,7 +342,8 @@ function rings.add_rings(tree)
   -- Although branch points are represented 3 times in the tree table, we still
   -- want a separate ring for each one, as each branch point corresponds to 3
   -- rings.
-  for _, tree_pt in pairs(tree) do
+  for i = 1, #tree do
+    local tree_pt = tree[i]
     add_ring_to_pt(tree_pt)
 
     assert(type(tree_pt.ring) == 'table' and #tree_pt.ring > 0)

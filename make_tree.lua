@@ -59,6 +59,14 @@ local do_dbg_print = false
 
 -- Internal utility functions.
 
+-- This expects two sequence tables in `t` and `suffix.
+-- It appends the contents of `suffix` to the end of `t`.
+local function append(t, suffix)
+  for _, val in ipairs(suffix) do
+    table.insert(t, val)
+  end
+end
+
 -- This returns a random float in the range [min, max).
 local function uniform_rand(min, max)
   assert(max > min)
@@ -153,7 +161,12 @@ local function add_to_tree(args, tree)
 
   -- This is an experimental value.
   -- TODO NEXT Try making this an interesting function of max_recursion.
-  turn_angle = math.pi / 2
+
+  if args.max_recursion > 8 then
+    turn_angle = math.pi / 2
+  else
+    turn_angle = 0
+  end
 
   -- Find out_dir orthogonal to direction.
   local out_dir = prev_out_dir
@@ -179,6 +192,12 @@ local function add_to_tree(args, tree)
   local dir2 = Mat3:rotate(-split_angle * w2, out_dir) * args.direction
   assert(not dir2:has_nan())
   tree[#tree].out = out_dir
+
+  -- Maintain a flat array of vertex positions for lines to illustrate the out
+  -- directions at each branching point.
+  if tree.out_dir_pts == nil then tree.out_dir_pts = {} end
+  append(tree.out_dir_pts, tree[#tree].pt)
+  append(tree.out_dir_pts, tree[#tree].pt + out_dir * 0.1)
 
   subtree_args.direction = dir1
   add_to_tree(subtree_args, tree)
