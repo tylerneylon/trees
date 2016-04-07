@@ -157,10 +157,7 @@ local function add_to_tree(args, tree)
   local split_angle = val_near_avg(0.55)  -- This is in radians.
   local turn_angle  = uniform_rand(0.0, 2 * math.pi)
 
-  -- This is an experimental value.
-  -- TODO NEXT Try making this an interesting function of max_recursion.
-
-  if args.max_recursion > 8 or args.max_recursion % 2 ~= 0 then
+  if args.max_recursion % 2 ~= 0 then
     turn_angle = math.pi / 2
   else
     turn_angle = 0
@@ -182,9 +179,6 @@ local function add_to_tree(args, tree)
   end
 
   out_dir = Mat3:rotate(turn_angle, args.direction) * out_dir
-
-  -- TODO HERE Customize how dir{1,2} are chosen below. The only key property is
-  --      that dir1 is to the left of dir2 with respect to out_dir.
 
   local dir1 = Mat3:rotate( split_angle * w1, out_dir) * args.direction
   assert(not dir1:has_nan())
