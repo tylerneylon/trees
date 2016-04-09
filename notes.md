@@ -217,3 +217,58 @@ Is a branch direction determined at the time of branching, or before? Does it
 anticipate sunlight or react in retrospect to it? I'm assuming that the best
 branch direction is the one that optimizes sunlight exposure to the leaves. Is
 that a good assumption?
+
+## Stepping off point
+
+Today is 200.2016, and I've decided to take a haitus from this project. I hope
+to return to it within the next several months to a year. My vision is currently
+to produce a modest variety of tree shapes that roughly correspond with several
+real tree species. I intend to keep the style low-poly and a bit abstract. I'm
+interested in modifying both the skeleton shape and branch widths to achieve
+that variety. I'm open to trying out new leaf approaches as I'm not sure the
+current glob approach will work for many tree types.
+
+I'm recording some ideas here to help myself remember where I was going, and to
+get started back in those directions.
+
+A companion document to this is a Pages file called *Self-notes on random tree
+generation*. That document includes a draft outline of an article I plan to
+write for code_life. I see that as a great goal for this project. That file does
+contain some ideas for future work, but I will still list ideas here.
+
+* I'm interested in adding tree growth. If I do this, it may be best to do so
+  sooner as I think it will only become more difficult to add over time. I'd
+  like to start with non-leaf growth and either add leaf growth later, or never
+  at all. It's ok with me if leaf growth is not implemented. I can imagine the
+  implementation being a simple growing outward of a skeleton toward its
+  precomputed completion. I'm ok if the animation can't be rendered in realtime,
+  though I'd love to be able to post-compile an animation or movie file that
+  *can* be played in realtime, aka, smoothly.
+* Altering the tree skeleton to accommodate different tree species. I imagine
+  picking out one species at a time and attempting to generate a skeleton of
+  roughly the same shape. I noticed that some tree types appear to have a strong
+  trunk throughout their height while others are less centralized, with
+  egalitarian branches beyond a certain relatively low point. I've also noticed
+  that there seems to be a hierarchy of branch types. Some produce leaves and
+  others don't. Some appear flexible or expendable and others don't. Is it
+  possible for a branch to move up in this hierarchy?
+* Altering the tree skeleton by adding curved branches. I imagine keeping each
+  general branch direction the same, but adding a small number of intermediate
+  points that add small curves to certain branches. This would involve adding
+  rings at those points. I imagine this ring being connected to its neighbors
+  similar to the way a child point is connected to its leafward neighbor now.
+* Altering branch weights. In some trees, branching points produce two peer-like
+  branches. In other cases, the branches are vastly different in scale.
+* Exploring color variations. Perhaps different leaf elements could be different
+  colors. I can imagine different tree species having different bark colors.
+  These colors could be randomized. Different triangles could have slightly
+  different base colors. Birch trees have something like stripes. I'm not sure
+  how to capture that, but I could think about it. Eucalyptus trees can have
+  their own version of stripes that may be easier to capture as
+  vertically-oriented patches of similarly-colored triangles, with color
+  variation horizontally.
+* Completely optionally, I could consider adding more shape variety such as
+  saltwater-swept trees like
+  [this](https://commons.wikimedia.org/wiki/File:Windswept_tree_on_Brean_Down_(geograph_1902183).jpg)
+  or trees with strangely bent trunks like
+  [this](http://stunningplaces.net/forest-in-poland/).
